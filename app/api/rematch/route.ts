@@ -120,19 +120,53 @@ export async function POST(request: Request) {
         total_plays: 0,
         last_streak_achieved_at: null,
         updated_at: now.toISOString(),
+        current_same_num_streak: 0,
+        max_same_num_streak: 0,
+        last_user_roll: null,
+        total_rematch_wins: 0,
+        total_rematch_losses: 0,
       }
 
+  // 재대결 결과에 따른 역전승/역전패 카운트 (same_num_streak 는 초기 플레이 기준 유지)
   const newStreak = updateStreakState(baseForRematch, rematchResult, now)
+  if (rematchResult === 'win') {
+    newStreak.total_rematch_wins = (currentStreak?.total_rematch_wins ?? 0) + 1
+  } else if (rematchResult === 'lose') {
+    newStreak.total_rematch_losses = (currentStreak?.total_rematch_losses ?? 0) + 1
+  }
+
+  // 기본 컬럼만 UPSERT (migration 006 적용 전 환경에서도 안전하게 동작)
+  const {
+    current_same_num_streak,
+    max_same_num_streak,
+    last_user_roll: lastUserRoll,
+    total_rematch_wins,
+    total_rematch_losses,
+    ...baseStreakFields
+  } = newStreak
 
   const { data: streak, error: streakError } = await supabase
     .from('dice_streak_state')
-    .upsert({ ...newStreak, user_id: user.id })
+    .upsert({ ...baseStreakFields, user_id: user.id })
     .select('*')
     .single()
 
   if (streakError || !streak) {
     return NextResponse.json({ error: '스트릭 업데이트 중 오류가 발생했습니다.' }, { status: 500 })
   }
+
+  // migration 006 컬럼 업데이트 시도 — 컬럼이 없으면 에러를 무시
+  await supabase
+    .from('dice_streak_state')
+    .update({
+      current_same_num_streak: current_same_num_streak ?? 0,
+      max_same_num_streak: max_same_num_streak ?? 0,
+      last_user_roll: lastUserRoll ?? null,
+      total_rematch_wins: total_rematch_wins ?? 0,
+      total_rematch_losses: total_rematch_losses ?? 0,
+    })
+    .eq('user_id', user.id)
+  // 에러 무시 (migration 006 미적용 환경 대응)
 
   const response: RematchResponse = { battle: updatedBattle, streak }
   return NextResponse.json(response)

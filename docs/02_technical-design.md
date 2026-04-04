@@ -1,9 +1,45 @@
 # 데일리 주사위 배틀 — 기술 설계서
 
 > 작성일: 2026-04-03  
-> 버전: v0.1 (MVP 초안)  
+> 버전: v1.1 (MVP + 확장 기능)  
 > 데이터베이스: Supabase  
 > 테이블 명명 규칙: 반드시 `dice_` 접두사 사용  
+
+---
+
+## 0. 마이그레이션 적용 가이드
+
+### 현재 적용 상태
+
+| 파일 | 상태 |
+|------|------|
+| `001_create_dice_users.sql` | ✅ 적용 완료 |
+| `002_create_dice_daily_battle.sql` | ✅ 적용 완료 |
+| `003_create_dice_streak_state.sql` | ✅ 적용 완료 |
+| `004_create_dice_leaderboard_cache.sql` | ✅ 적용 완료 |
+| `005_create_rls_policies.sql` | ✅ 적용 완료 |
+| `006_add_streak_extra_columns.sql` | ⚠️ **미적용 — 아래 방법으로 적용 필요** |
+
+### migration 006 적용 방법 (Supabase Dashboard)
+
+1. [app.supabase.com](https://app.supabase.com) 접속 → 프로젝트 `dxuvdvvdpcbkilesovoc` 선택
+2. 왼쪽 메뉴 **SQL Editor** 클릭
+3. 아래 SQL 붙여넣기 후 실행 (Run)
+
+```sql
+ALTER TABLE dice_streak_state
+  ADD COLUMN IF NOT EXISTS current_same_num_streak SMALLINT NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS max_same_num_streak     SMALLINT NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS last_user_roll          SMALLINT,
+  ADD COLUMN IF NOT EXISTS total_rematch_wins      INTEGER  NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS total_rematch_losses    INTEGER  NOT NULL DEFAULT 0;
+```
+
+> **적용 전 동작:** 같은 번호 연속·역전승·역전패 랭킹은 모두 0으로 표시됩니다.  
+> **적용 후 동작:** 다음 플레이부터 해당 통계가 정상 집계됩니다.
+
+> **코드 호환성:** API 코드는 migration 006 적용 여부와 무관하게 정상 동작하도록  
+> base 컬럼 UPSERT와 extended 컬럼 업데이트를 분리 처리합니다 (에러 무시).
 
 ---
 
@@ -121,10 +157,15 @@ CREATE UNIQUE INDEX ON dice_daily_battle(user_id, battle_date);
 | `max_win_streak` | SMALLINT | 역대 최고 연승 수 |
 | `max_lose_streak` | SMALLINT | 역대 최고 연패 수 |
 | `max_draw_streak` | SMALLINT | 역대 최고 무승부 연속 수 |
+| `current_same_num_streak` | SMALLINT | 현재 연속 같은 번호 수 |
+| `max_same_num_streak` | SMALLINT | 역대 최고 연속 같은 번호 수 |
+| `last_user_roll` | SMALLINT | 직전 날 사용자 굴림 번호 (연속 같은 번호 추적용) |
 | `total_wins` | INTEGER | 누적 승리 수 |
 | `total_losses` | INTEGER | 누적 패배 수 |
 | `total_draws` | INTEGER | 누적 무승부 수 |
 | `total_plays` | INTEGER | 누적 플레이 수 |
+| `total_rematch_wins` | INTEGER | 역전승(재대결 승리) 누적 수 |
+| `total_rematch_losses` | INTEGER | 역전패(재대결 패배) 누적 수 |
 | `last_streak_achieved_at` | TIMESTAMPTZ | 현재 연승 마지막 갱신 시각 (동률 처리용) |
 | `updated_at` | TIMESTAMPTZ | 마지막 업데이트 |
 
@@ -133,16 +174,18 @@ CREATE UNIQUE INDEX ON dice_daily_battle(user_id, battle_date);
 - Supabase 트리거 또는 Edge Function에서 처리
 
 #### MVP에서 생략 가능한 컬럼
-- `max_lose_streak`, `max_draw_streak` (V1 랭킹이 연승만이면 불필요하나 있는 게 나음)
+- (v1.1 기준 모두 구현됨)
 
 ---
 
 ### 8-6. `dice_leaderboard_cache`
 
 #### 역할
-랭킹 화면에서 매번 실시간 집계 쿼리를 날리지 않도록  
-미리 계산된 TOP5 결과를 저장하는 캐시 테이블.  
+랭킹 화면에서 매번 실시간 집계 쿼리를 날리지 않도록 미리 계산된 TOP5 결과를 저장하는 캐시 테이블.  
 1시간마다 갱신 (Supabase cron 또는 Edge Function).
+
+> ⚠️ **v1.1 현쟬는 미사용.** 랭킹 API가 `dice_streak_state` 직접 조회로 동작하며,  
+> 플레이어 수가 많아지면 캐시 재적용 예정.
 
 #### 주요 컬럼
 

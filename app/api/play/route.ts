@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { extractUserId } from '@/lib/auth'
 import { getTodayKST } from '@/lib/date-utils'
 import { rollDice, judgeResult, updateStreakState } from '@/lib/game-logic'
+import { generateNickname } from '@/lib/nickname'
 import type { PlayResponse, StreakState } from '@/types'
 
 export async function POST(request: Request) {
@@ -15,17 +16,30 @@ export async function POST(request: Request) {
   const today = getTodayKST()
   const now = new Date()
 
-  // 사용자 UPSERT (처음 접속 시 자동 생성)
-  const { data: user, error: userError } = await supabase
+  // 사용자 조회 — 없으면 신규 생성 (닉네임은 최초 1회만 생성)
+  let { data: user } = await supabase
     .from('dice_users')
-    .upsert(
-      { toss_user_id: tossUserId, updated_at: now.toISOString() },
-      { onConflict: 'toss_user_id' }
-    )
     .select('id')
+    .eq('toss_user_id', tossUserId)
     .single()
 
-  if (userError || !user) {
+  if (!user) {
+    const { data: newUser, error: insertError } = await supabase
+      .from('dice_users')
+      .insert({
+        toss_user_id: tossUserId,
+        display_name: generateNickname(),
+      })
+      .select('id')
+      .single()
+
+    if (insertError || !newUser) {
+      return NextResponse.json({ error: '사용자 처리 중 오류가 발생했습니다.' }, { status: 500 })
+    }
+    user = newUser
+  }
+
+  if (!user) {
     return NextResponse.json({ error: '사용자 처리 중 오류가 발생했습니다.' }, { status: 500 })
   }
 
@@ -89,19 +103,50 @@ export async function POST(request: Request) {
     total_plays: 0,
     last_streak_achieved_at: null,
     updated_at: now.toISOString(),
+    current_same_num_streak: 0,
+    max_same_num_streak: 0,
+    last_user_roll: null,
+    total_rematch_wins: 0,
+    total_rematch_losses: 0,
   }
 
-  const newStreak = updateStreakState(baseStreak, result, now)
+  const newStreak = updateStreakState(baseStreak, result, now, userRoll)
 
-  // 스트릭 UPSERT
+  // 기본 컬럼만 UPSERT (migration 006 적용 전 환경에서도 안전하게 동작)
+  // new fields: current_same_num_streak, max_same_num_streak, last_user_roll,
+  //             total_rematch_wins, total_rematch_losses
+  const {
+    current_same_num_streak,
+    max_same_num_streak,
+    last_user_roll: lastUserRoll,
+    total_rematch_wins,
+    total_rematch_losses,
+    ...baseStreakFields
+  } = newStreak
+
   const { data: streak, error: streakError } = await supabase
     .from('dice_streak_state')
-    .upsert({ ...newStreak, user_id: user.id })
+    .upsert({ ...baseStreakFields, user_id: user.id })
     .select('*')
     .single()
 
   if (streakError || !streak) {
     return NextResponse.json({ error: '스트릭 업데이트 중 오류가 발생했습니다.' }, { status: 500 })
+  }
+
+  // migration 006 컬럼 업데이트 시도 — 컬럼이 없으면 에러를 무시
+  if (current_same_num_streak !== undefined || lastUserRoll !== undefined) {
+    await supabase
+      .from('dice_streak_state')
+      .update({
+        current_same_num_streak: current_same_num_streak ?? 0,
+        max_same_num_streak: max_same_num_streak ?? 0,
+        last_user_roll: lastUserRoll ?? null,
+        total_rematch_wins: total_rematch_wins ?? 0,
+        total_rematch_losses: total_rematch_losses ?? 0,
+      })
+      .eq('user_id', user.id)
+    // 에러 무시 (migration 006 미적용 환경 대응)
   }
 
   const response: PlayResponse = { battle, streak }

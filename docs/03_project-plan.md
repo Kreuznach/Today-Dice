@@ -50,8 +50,9 @@ Today-Dice/
 │   │   │   ├── Card.tsx
 │   │   │   └── LoadingSpinner.tsx
 │   │   └── dice/
-│   │       ├── DiceFace.tsx        ← 주사위 면 렌더링
-│   │       └── DiceRollAnimation.tsx ← 굴리기 애니메이션
+│   │       ├── DiceFace.tsx        ← 주사위 면 렌더링 (2D SVG, 결과 화면)
+│   │       ├── Dice3D.tsx          ← CSS 3D 큐브 주사위 (플레이 화면 + 애니메이션)
+│   │       └── DiceRollAnimation.tsx ← (레거시, 미사용)
 │   │
 │   ├── features/
 │   │   └── dice/
@@ -69,9 +70,10 @@ Today-Dice/
 │   │   ├── supabase/
 │   │   │   ├── client.ts           ← Supabase 클라이언트 (브라우저)
 │   │   │   └── server.ts           ← Supabase 클라이언트 (서버)
-│   │   ├── game-logic.ts           ← 주사위 판정 로직 (서버용)
+│   │   ├── game-logic.ts           ← 주사위 판정/스트릭 로직 (서버용)
 │   │   ├── date-utils.ts           ← KST 날짜 처리 유틸
-│   │   └── auth.ts                 ← Toss 사용자 인증 처리
+│   │   ├── auth.ts                 ← Toss 사용자 인증 처리
+│   │   └── nickname.ts             ← 랜덤 닉네임 생성 (형용사+명사+#4자리)
 │   │
 │   └── types/
 │       └── index.ts                ← 전역 타입 (API 응답 등)
@@ -82,10 +84,11 @@ Today-Dice/
 │   │   ├── 002_create_dice_daily_battle.sql
 │   │   ├── 003_create_dice_streak_state.sql
 │   │   ├── 004_create_dice_leaderboard_cache.sql
-│   │   └── 005_create_rls_policies.sql
+│   │   ├── 005_create_rls_policies.sql
+│   │   └── 006_add_streak_extra_columns.sql  ← 같은번호·역전승패 컬럼 추가
 │   └── functions/
 │       └── update-leaderboard/
-│           └── index.ts            ← 랭킹 갱신 Edge Function
+│           └── index.ts            ← 랭킹 갱신 Edge Function (예정)
 │
 ├── public/
 │   └── dice/                       ← 주사위 SVG/이미지 (1~6면)

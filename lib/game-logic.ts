@@ -20,13 +20,15 @@ export function judgeResult(
 }
 
 /**
- * 현재 스트릭 상태를 새 결과로 갱신한 상태를 반환
- * 무승부는 연승/연패를 초기화하고 무승부 스트릭을 증가
+ * 현재 스트릭 상태를 새 결과로 갱신한 상태를 반환.
+ * - userRoll 을 넘기면 "같은 번호 연속(same_num_streak)" 도 함께 갱신.
+ * - 무승부는 연승/연패를 초기화하고 무승부 스트릭을 증가.
  */
 export function updateStreakState(
   current: StreakState,
   result: 'win' | 'lose' | 'draw',
-  now: Date = new Date()
+  now: Date = new Date(),
+  userRoll?: number,
 ): StreakState {
   const next: StreakState = { ...current }
 
@@ -55,6 +57,20 @@ export function updateStreakState(
     if (next.current_draw_streak > current.max_draw_streak) {
       next.max_draw_streak = next.current_draw_streak
     }
+  }
+
+  // 같은 번호 연속 추적 (userRoll 이 제공된 경우에만)
+  if (userRoll !== undefined) {
+    const prevRoll = current.last_user_roll ?? null
+    if (prevRoll !== null && userRoll === prevRoll) {
+      next.current_same_num_streak = (current.current_same_num_streak ?? 0) + 1
+    } else {
+      next.current_same_num_streak = 1
+    }
+    if (next.current_same_num_streak > (current.max_same_num_streak ?? 0)) {
+      next.max_same_num_streak = next.current_same_num_streak
+    }
+    next.last_user_roll = userRoll
   }
 
   next.total_plays = current.total_plays + 1

@@ -38,6 +38,13 @@ export interface StreakState {
   total_plays: number
   last_streak_achieved_at: string | null
   updated_at: string
+  // 같은 번호 연속 추적
+  current_same_num_streak: number
+  max_same_num_streak: number
+  last_user_roll: number | null
+  // 역전승/역전패 누적
+  total_rematch_wins: number
+  total_rematch_losses: number
 }
 
 // ─── API 응답 타입 ────────────────────────────────────────────────────────────
