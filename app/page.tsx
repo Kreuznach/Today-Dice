@@ -96,7 +96,7 @@ export default function HomePage() {
           <Button variant="ghost" fullWidth>🏆 랭킹</Button>
         </Link>
         <Link href="/my-records" className="flex-1">
-          <Button variant="ghost" fullWidth>📋 내 기록</Button>
+          <Button variant="ghost" fullWidth>📋 내 정보</Button>
         </Link>
       </div>
     </main>

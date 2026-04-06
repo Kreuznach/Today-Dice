@@ -43,6 +43,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 NEXT_PUBLIC_APP_ENV=development
 TZ=Asia/Seoul
+NEXT_PUBLIC_AIT_AD_ID=ait.v2.live.544f01132f2a43ec
 ```
 
 ### 3. 개발 서버 실행

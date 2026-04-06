@@ -42,9 +42,21 @@ export interface StreakState {
   current_same_num_streak: number
   max_same_num_streak: number
   last_user_roll: number | null
-  // 역전승/역전패 누적
+  // 역전승/역전패/무승부 누적
   total_rematch_wins: number
   total_rematch_losses: number
+  total_rematch_draws: number
+  // 주사위 숫자별 나온 횟수 (초기 플레이 기준)
+  roll_count_1: number
+  roll_count_2: number
+  roll_count_3: number
+  roll_count_4: number
+  roll_count_5: number
+  roll_count_6: number
+  // 연속 출석
+  current_attendance_streak: number
+  max_attendance_streak: number
+  last_play_date: string | null
 }
 
 // ─── API 응답 타입 ────────────────────────────────────────────────────────────
@@ -82,6 +94,7 @@ export interface RankingResponse {
 }
 
 export interface MyRecordsResponse {
+  display_name: string | null
   battles: TodayBattle[]
   streak: StreakState | null
 }

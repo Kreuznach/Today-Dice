@@ -2,6 +2,17 @@
 
 import Button from '@/components/ui/Button'
 
+// app-in-toss 광고 SDK: Toss WebView 환경에서 주입되는 전역 브릿지
+declare global {
+  interface Window {
+    TossAdSDK?: {
+      requestRewardedAd: (adId: string) => Promise<{ token: string }>
+    }
+  }
+}
+
+const AIT_AD_ID = process.env.NEXT_PUBLIC_AIT_AD_ID ?? 'ait.v2.live.544f01132f2a43ec'
+
 interface RematchButtonProps {
   hasRematch: boolean
   onAdComplete: (adToken: string) => void
@@ -11,10 +22,20 @@ interface RematchButtonProps {
 export default function RematchButton({ hasRematch, onAdComplete, loading = false }: RematchButtonProps) {
   if (hasRematch) return null
 
-  function handleClick() {
-    // MVP: 광고 SDK 연동 전 임시 토큰으로 처리
-    const mockAdToken = `mock_ad_${Date.now()}`
-    onAdComplete(mockAdToken)
+  async function handleClick() {
+    try {
+      if (typeof window !== 'undefined' && window.TossAdSDK?.requestRewardedAd) {
+        // app-in-toss 광고 SDK 연동
+        const { token } = await window.TossAdSDK.requestRewardedAd(AIT_AD_ID)
+        onAdComplete(token)
+      } else {
+        // 개발 환경 또는 비-Toss 브라우저 폴백
+        const devToken = `dev_ad_${Date.now()}`
+        onAdComplete(devToken)
+      }
+    } catch {
+      // 광고 시청 취소 또는 실패 시 아무것도 하지 않음
+    }
   }
 
   return (

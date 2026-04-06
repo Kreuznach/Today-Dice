@@ -108,19 +108,33 @@ export async function POST(request: Request) {
     last_user_roll: null,
     total_rematch_wins: 0,
     total_rematch_losses: 0,
+    total_rematch_draws: 0,
+    roll_count_1: 0,
+    roll_count_2: 0,
+    roll_count_3: 0,
+    roll_count_4: 0,
+    roll_count_5: 0,
+    roll_count_6: 0,
+    current_attendance_streak: 0,
+    max_attendance_streak: 0,
+    last_play_date: null,
   }
 
-  const newStreak = updateStreakState(baseStreak, result, now, userRoll)
+  const newStreak = updateStreakState(baseStreak, result, now, userRoll, today)
 
   // 기본 컬럼만 UPSERT (migration 006 적용 전 환경에서도 안전하게 동작)
-  // new fields: current_same_num_streak, max_same_num_streak, last_user_roll,
-  //             total_rematch_wins, total_rematch_losses
   const {
     current_same_num_streak,
     max_same_num_streak,
     last_user_roll: lastUserRoll,
     total_rematch_wins,
     total_rematch_losses,
+    total_rematch_draws,
+    roll_count_1, roll_count_2, roll_count_3,
+    roll_count_4, roll_count_5, roll_count_6,
+    current_attendance_streak,
+    max_attendance_streak,
+    last_play_date,
     ...baseStreakFields
   } = newStreak
 
@@ -134,20 +148,28 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: '스트릭 업데이트 중 오류가 발생했습니다.' }, { status: 500 })
   }
 
-  // migration 006 컬럼 업데이트 시도 — 컬럼이 없으면 에러를 무시
-  if (current_same_num_streak !== undefined || lastUserRoll !== undefined) {
-    await supabase
-      .from('dice_streak_state')
-      .update({
-        current_same_num_streak: current_same_num_streak ?? 0,
-        max_same_num_streak: max_same_num_streak ?? 0,
-        last_user_roll: lastUserRoll ?? null,
-        total_rematch_wins: total_rematch_wins ?? 0,
-        total_rematch_losses: total_rematch_losses ?? 0,
-      })
-      .eq('user_id', user.id)
-    // 에러 무시 (migration 006 미적용 환경 대응)
-  }
+  // migration 006+007 컬럼 업데이트 시도 — 컬럼이 없으면 에러를 무시
+  await supabase
+    .from('dice_streak_state')
+    .update({
+      current_same_num_streak: current_same_num_streak ?? 0,
+      max_same_num_streak: max_same_num_streak ?? 0,
+      last_user_roll: lastUserRoll ?? null,
+      total_rematch_wins: total_rematch_wins ?? 0,
+      total_rematch_losses: total_rematch_losses ?? 0,
+      total_rematch_draws: total_rematch_draws ?? 0,
+      roll_count_1: roll_count_1 ?? 0,
+      roll_count_2: roll_count_2 ?? 0,
+      roll_count_3: roll_count_3 ?? 0,
+      roll_count_4: roll_count_4 ?? 0,
+      roll_count_5: roll_count_5 ?? 0,
+      roll_count_6: roll_count_6 ?? 0,
+      current_attendance_streak: current_attendance_streak ?? 0,
+      max_attendance_streak: max_attendance_streak ?? 0,
+      last_play_date: last_play_date ?? null,
+    })
+    .eq('user_id', user.id)
+  // 에러 무시 (migration 미적용 환경 대응)
 
   const response: PlayResponse = { battle, streak }
   return NextResponse.json(response)

@@ -14,12 +14,12 @@ export async function GET(request: Request) {
 
   const { data: user } = await supabase
     .from('dice_users')
-    .select('id')
+    .select('id, display_name')
     .eq('toss_user_id', tossUserId)
     .single()
 
   if (!user) {
-    const response: MyRecordsResponse = { battles: [], streak: null }
+    const response: MyRecordsResponse = { display_name: null, battles: [], streak: null }
     return NextResponse.json(response)
   }
 
@@ -45,6 +45,7 @@ export async function GET(request: Request) {
   ])
 
   const response: MyRecordsResponse = {
+    display_name: user.display_name ?? null,
     battles: battlesRes.data ?? [],
     streak: streakRes.data ?? null,
   }

@@ -21,7 +21,8 @@ export function judgeResult(
 
 /**
  * 현재 스트릭 상태를 새 결과로 갱신한 상태를 반환.
- * - userRoll 을 넘기면 "같은 번호 연속(same_num_streak)" 도 함께 갱신.
+ * - userRoll 을 넘기면 "같은 번호 연속(same_num_streak)" 및 숫자별 횟수(roll_count_X)도 함께 갱신.
+ * - today(YYYY-MM-DD) 를 넘기면 연속 출석(attendance_streak)을 갱신.
  * - 무승부는 연승/연패를 초기화하고 무승부 스트릭을 증가.
  */
 export function updateStreakState(
@@ -29,6 +30,7 @@ export function updateStreakState(
   result: 'win' | 'lose' | 'draw',
   now: Date = new Date(),
   userRoll?: number,
+  today?: string,
 ): StreakState {
   const next: StreakState = { ...current }
 
@@ -59,8 +61,8 @@ export function updateStreakState(
     }
   }
 
-  // 같은 번호 연속 추적 (userRoll 이 제공된 경우에만)
-  if (userRoll !== undefined) {
+  // 같은 번호 연속 추적 + 숫자별 횟수 (userRoll 이 제공된 경우에만)
+  if (userRoll !== undefined && userRoll >= 1 && userRoll <= 6) {
     const prevRoll = current.last_user_roll ?? null
     if (prevRoll !== null && userRoll === prevRoll) {
       next.current_same_num_streak = (current.current_same_num_streak ?? 0) + 1
@@ -71,6 +73,30 @@ export function updateStreakState(
       next.max_same_num_streak = next.current_same_num_streak
     }
     next.last_user_roll = userRoll
+
+    // 숫자별 나온 횟수 갱신
+    const key = `roll_count_${userRoll}` as keyof StreakState
+    next[key] = ((current[key] as number) ?? 0) + 1 as never
+  }
+
+  // 연속 출석 추적 (today 가 제공된 경우에만)
+  if (today) {
+    const lastPlay = current.last_play_date ?? null
+    if (lastPlay) {
+      const diffMs = new Date(today).getTime() - new Date(lastPlay).getTime()
+      const diffDays = Math.round(diffMs / 86400000)
+      if (diffDays === 1) {
+        next.current_attendance_streak = (current.current_attendance_streak ?? 0) + 1
+      } else {
+        next.current_attendance_streak = 1
+      }
+    } else {
+      next.current_attendance_streak = 1
+    }
+    if (next.current_attendance_streak > (current.max_attendance_streak ?? 0)) {
+      next.max_attendance_streak = next.current_attendance_streak
+    }
+    next.last_play_date = today
   }
 
   next.total_plays = current.total_plays + 1

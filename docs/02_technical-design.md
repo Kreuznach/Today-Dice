@@ -1,7 +1,8 @@
 # 데일리 주사위 배틀 — 기술 설계서
 
 > 작성일: 2026-04-03  
-> 버전: v1.1 (MVP + 확장 기능)  
+> 최종 수정: 2026-04-06 (v1.2 — 광고 SDK 연동, 내 정보 페이지 확장)  
+> 버전: v1.2  
 > 데이터베이스: Supabase  
 > 테이블 명명 규칙: 반드시 `dice_` 접두사 사용  
 
@@ -19,6 +20,7 @@
 | `004_create_dice_leaderboard_cache.sql` | ✅ 적용 완료 |
 | `005_create_rls_policies.sql` | ✅ 적용 완료 |
 | `006_add_streak_extra_columns.sql` | ⚠️ **미적용 — 아래 방법으로 적용 필요** |
+| `007_add_stats_columns.sql` | ⚠️ **미적용 — 006 적용 후 이어서 적용 필요** |
 
 ### migration 006 적용 방법 (Supabase Dashboard)
 
@@ -35,10 +37,28 @@ ALTER TABLE dice_streak_state
   ADD COLUMN IF NOT EXISTS total_rematch_losses    INTEGER  NOT NULL DEFAULT 0;
 ```
 
-> **적용 전 동작:** 같은 번호 연속·역전승·역전패 랭킹은 모두 0으로 표시됩니다.  
+### migration 007 적용 방법 (Supabase Dashboard)
+
+006 적용 후 이어서 SQL Editor에서 실행:
+
+```sql
+ALTER TABLE dice_streak_state
+  ADD COLUMN IF NOT EXISTS roll_count_1              INTEGER  NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS roll_count_2              INTEGER  NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS roll_count_3              INTEGER  NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS roll_count_4              INTEGER  NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS roll_count_5              INTEGER  NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS roll_count_6              INTEGER  NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS total_rematch_draws       INTEGER  NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS current_attendance_streak SMALLINT NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS max_attendance_streak     SMALLINT NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS last_play_date            DATE;
+```
+
+> **적용 전 동작:** 주사위 숫자별 횟수, 광고 무승부, 연속 출석은 모두 0으로 표시됩니다.  
 > **적용 후 동작:** 다음 플레이부터 해당 통계가 정상 집계됩니다.
 
-> **코드 호환성:** API 코드는 migration 006 적용 여부와 무관하게 정상 동작하도록  
+> **코드 호환성:** API 코드는 migration 006/007 적용 여부와 무관하게 정상 동작하도록  
 > base 컬럼 UPSERT와 extended 컬럼 업데이트를 분리 처리합니다 (에러 무시).
 
 ---
@@ -57,6 +77,7 @@ ALTER TABLE dice_streak_state
 ```env
 SUPABASE_URL=https://dxuvdvvdpcbkilesovoc.supabase.co
 SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4dXZkdnZkcGNia2lsZXNvdm9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MTI1MTksImV4cCI6MjA4Nzk4ODUxOX0.506s1P5Tfyj29pfgoJ15pWeDiKcQFUjVXYwqxOKRUAU
+NEXT_PUBLIC_AIT_AD_ID=ait.v2.live.544f01132f2a43ec
 ```
 
 > ⚠️ ANON_KEY는 Row Level Security(RLS) 정책과 함께 사용해야 안전합니다.  
@@ -157,15 +178,20 @@ CREATE UNIQUE INDEX ON dice_daily_battle(user_id, battle_date);
 | `max_win_streak` | SMALLINT | 역대 최고 연승 수 |
 | `max_lose_streak` | SMALLINT | 역대 최고 연패 수 |
 | `max_draw_streak` | SMALLINT | 역대 최고 무승부 연속 수 |
-| `current_same_num_streak` | SMALLINT | 현재 연속 같은 번호 수 |
-| `max_same_num_streak` | SMALLINT | 역대 최고 연속 같은 번호 수 |
-| `last_user_roll` | SMALLINT | 직전 날 사용자 굴림 번호 (연속 같은 번호 추적용) |
+| `current_same_num_streak` | SMALLINT | 현재 연속 같은 번호 수 *(migration 006)* |
+| `max_same_num_streak` | SMALLINT | 역대 최고 연속 같은 번호 수 *(migration 006)* |
+| `last_user_roll` | SMALLINT | 직전 날 사용자 굴림 번호 *(migration 006)* |
 | `total_wins` | INTEGER | 누적 승리 수 |
 | `total_losses` | INTEGER | 누적 패배 수 |
 | `total_draws` | INTEGER | 누적 무승부 수 |
 | `total_plays` | INTEGER | 누적 플레이 수 |
-| `total_rematch_wins` | INTEGER | 역전승(재대결 승리) 누적 수 |
-| `total_rematch_losses` | INTEGER | 역전패(재대결 패배) 누적 수 |
+| `total_rematch_wins` | INTEGER | 광고 역전승 누적 수 *(migration 006)* |
+| `total_rematch_losses` | INTEGER | 광고 역전패 누적 수 *(migration 006)* |
+| `total_rematch_draws` | INTEGER | 광고 무승부 누적 수 *(migration 007)* |
+| `roll_count_1` ~ `roll_count_6` | INTEGER | 주사위 숫자별 나온 횟수 (초기 플레이 기준) *(migration 007)* |
+| `current_attendance_streak` | SMALLINT | 현재 연속 출석 일수 *(migration 007)* |
+| `max_attendance_streak` | SMALLINT | 역대 최고 연속 출석 일수 *(migration 007)* |
+| `last_play_date` | DATE | 마지막 플레이 날짜 (출석 추적용) *(migration 007)* |
 | `last_streak_achieved_at` | TIMESTAMPTZ | 현재 연승 마지막 갱신 시각 (동률 처리용) |
 | `updated_at` | TIMESTAMPTZ | 마지막 업데이트 |
 
