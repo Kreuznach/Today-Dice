@@ -1,0 +1,20 @@
+{
+  "appId": "com.codinglan.today-dice",
+  "displayName": "오늘의 주사위",
+  "version": "1.0.0",
+  "description": "주사위로 1일 1회 AI 주사위 대결",
+  "category": "entertainment",
+  "entryUrl": "/",
+  "sdkVersion": "2.0",
+  "deploymentId": "019d61f9-6afe-75fa-b00c-1425427d08af",
+  "ait": {
+    "deploymentId": "019d61f9-6afe-75fa-b00c-1425427d08af",
+    "adUnitId": "ait.v2.live.019d61f9-6afe-75fa-b00c-1425427d08af",
+    "adType": "rewarded"
+  },
+  "permissions": [],
+  "platform": "toss-in-app",
+  "author": {
+    "name": "CodingLan"
+  }
+}

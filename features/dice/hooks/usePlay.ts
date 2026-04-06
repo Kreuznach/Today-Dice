@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { getOrCreateGuestId } from '@/lib/auth'
+import { savePlay } from '@/lib/supabase'
 import type { PlayResponse } from '@/types'
 
 export function usePlay() {
@@ -13,18 +14,9 @@ export function usePlay() {
     setError(null)
     try {
       const userId = getOrCreateGuestId()
-      const res = await fetch('/api/play', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${userId}` },
-      })
-      const json = await res.json()
-      if (!res.ok) {
-        setError(json.error ?? '플레이 요청 실패')
-        return null
-      }
-      return json as PlayResponse
+      return await savePlay(userId)
     } catch (e) {
-      setError(e instanceof Error ? e.message : '알 수 없는 오류')
+      setError(e instanceof Error ? e.message : '플레이 요청 실패')
       return null
     } finally {
       setLoading(false)

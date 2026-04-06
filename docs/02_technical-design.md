@@ -1,8 +1,8 @@
-# 데일리 주사위 배틀 — 기술 설계서
+# 오늘의 주사위 — 기술 설계서
 
 > 작성일: 2026-04-03  
-> 최종 수정: 2026-04-06 (v1.2 — 광고 SDK 연동, 내 정보 페이지 확장)  
-> 버전: v1.2  
+> 최종 수정: 2026-04-06 (v1.6 — GoogleAdMob 광고 SDK 연동, middleware.ts 제거, trailingSlash 적용)  
+> 버전: v1.6  
 > 데이터베이스: Supabase  
 > 테이블 명명 규칙: 반드시 `dice_` 접두사 사용  
 
@@ -21,6 +21,7 @@
 | `005_create_rls_policies.sql` | ✅ 적용 완료 |
 | `006_add_streak_extra_columns.sql` | ⚠️ **미적용 — 아래 방법으로 적용 필요** |
 | `007_add_stats_columns.sql` | ⚠️ **미적용 — 006 적용 후 이어서 적용 필요** |
+| `008_allow_anon_access.sql` | ⚠️ **미적용 — 반드시 적용 필요 (직접 접근 활성화)** |
 
 ### migration 006 적용 방법 (Supabase Dashboard)
 
@@ -75,13 +76,15 @@ ALTER TABLE dice_streak_state
 ### 8-1. Supabase 연결 정보
 
 ```env
-SUPABASE_URL=https://dxuvdvvdpcbkilesovoc.supabase.co
-SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4dXZkdnZkcGNia2lsZXNvdm9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MTI1MTksImV4cCI6MjA4Nzk4ODUxOX0.506s1P5Tfyj29pfgoJ15pWeDiKcQFUjVXYwqxOKRUAU
+NEXT_PUBLIC_SUPABASE_URL=https://dxuvdvvdpcbkilesovoc.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4dXZkdnZkcGNia2lsZXNvdm9jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MTI1MTksImV4cCI6MjA4Nzk4ODUxOX0.506s1P5Tfyj29pfgoJ15pWeDiKcQFUjVXYwqxOKRUAU
 NEXT_PUBLIC_AIT_AD_ID=ait.v2.live.544f01132f2a43ec
 ```
 
 > ⚠️ ANON_KEY는 Row Level Security(RLS) 정책과 함께 사용해야 안전합니다.  
-> `.env.local`에 저장하고 절대 커밋하지 않습니다.
+> `.env.local`에 저장하고 절대 커밋하지 않습니다.  
+> `NEXT_PUBLIC_` 접두사가 붙은 변수는 클라이언트 번들에 포함되는 공개 키입니다.  
+> Supabase Anon Key 자체는 공개되어도 괜찮으나, RLS 정책으로 접근 범위를 제한합니다.
 
 ---
 
@@ -238,15 +241,18 @@ CREATE INDEX ON dice_leaderboard_cache(category, rank);
 
 ### 8-7. Row Level Security (RLS) 기본 방향
 
+> **v1.5 변경:** 클라이언트가 Supabase에 직접 접근하는 구조로 전환됨.  
+> `008_allow_anon_access.sql` 마이그레이션 적용 필요.
+
 | 테이블 | 읽기 | 쓰기 |
 |--------|------|------|
-| `dice_users` | 본인만 읽기 | 본인만 쓰기 |
-| `dice_daily_battle` | 본인만 읽기 | 서버(Service Role)만 쓰기 |
-| `dice_streak_state` | 본인만 읽기 | 서버(Service Role)만 쓰기 |
-| `dice_leaderboard_cache` | 모두 읽기 가능 | 서버(Service Role)만 쓰기 |
+| `dice_users` | anon 자유접근 | anon 자유접근 |
+| `dice_daily_battle` | anon 자유접근 | anon 자유접근 |
+| `dice_streak_state` | anon 자유접근 | anon 자유접근 |
+| `dice_leaderboard_cache` | 모두 읽기 가능 | — |
 
-> `dice_daily_battle`, `dice_streak_state` 는 클라이언트에서 직접 INSERT/UPDATE 불가.  
-> 반드시 서버(Edge Function)를 통해서만 쓰기.
+> 앱은 Supabase Auth 없이 localStorage UUID를 사용자 식별자로 사용합니다.  
+> Toss JWT 연동 후에는 user_id 기반 RLS 정책으로 교체 예정.
 
 ---
 
@@ -313,276 +319,86 @@ CREATE TABLE dice_leaderboard_cache (
 
 ---
 
-## 9. 서버 판정 및 치트 방지 최소안
+## 9. 데이터 접근 구조 (v1.5)
 
-### 9-1. 왜 클라이언트만 믿으면 안 되는가
+### 9-1. 클라이언트 직접 접근 방식
 
-| 위협 | 설명 |
+> **v1.5 변경:** Next.js API Route Handler와 Supabase Edge Function 프록시를 제거하고,  
+> 클라이언트(브라우저)에서 Supabase JS 클라이언트를 통해 직접 접근합니다.  
+> Today-RPS 프로젝트와 동일한 구조입니다.
+
+```
+[클라이언트 Web/WebView]
+    │
+    ├─ lib/supabase.ts  (데이터 접근 레이어)
+    │      ├─ getTodayStatus(userId)
+    │      ├─ savePlay(userId)
+    │      ├─ saveRematch(userId)
+    │      ├─ getRanking(category, userId)
+    │      └─ getMyRecords(userId)
+    │
+    └─ Supabase (anon key + RLS)
+           ├─ dice_users
+           ├─ dice_daily_battle
+           ├─ dice_streak_state
+           └─ dice_leaderboard_cache
+```
+
+**제거된 레이어:**
+- `app/api/*` Next.js Route Handlers
+- `supabase/functions/*` Supabase Edge Functions
+- `lib/api.ts` (API_BASE URL 헬퍼)
+- `lib/supabase/server.ts` (Service Role 클라이언트)
+- `@supabase/ssr` 패키지
+
+**이유:** AIT WebView에서 상대 경로(`/api/...`)가 `intoss-private://today-dice/api/...`로  
+해석되어 HTML을 반환하는 문제 해결. 절대 URL인 Supabase에 직접 접속합니다.
+
+### 9-2. 하루 1회 / 재대결 1회 제한 처리 (클라이언트)
+
+서버 프록시가 없으므로 중복 체크를 Supabase 쿼리로 직접 수행합니다.
+
+```
+[1차 플레이 - savePlay]
+1. dice_users에서 toss_user_id로 사용자 조회 (없으면 자동 생성)
+2. dice_daily_battle에서 오늘 날짜 기록 조회
+3. 이미 존재하면 → 에러: "오늘은 이미 플레이했어요"
+4. 클라이언트에서 주사위 생성 (Math.random 기반)
+5. dice_daily_battle INSERT
+6. dice_streak_state UPSERT
+
+[재대결 - saveRematch]
+1. 사용자 조회
+2. 오늘 battle 기록 조회
+3. has_rematch = true 면 → 에러: "오늘 재대결은 이미 완료했습니다"
+4. 주사위 생성 → battle UPDATE → streak UPSERT
+```
+
+> **날짜 기준:** KST (UTC+9) 기준 `getTodayKST()` 함수 사용 (클라이언트 로컬 시간 기반).
+
+### 9-3. 최소 검증 체크리스트
+
+- [x] 날짜는 KST 기준 계산
+- [x] 하루 1회 제한: Supabase 조회로 중복 확인
+- [x] 재대결 1회 제한: has_rematch 컬럼 확인
+- [x] 광고 시청 완료 확인: `GoogleAdMob.showAppsInTossAdMob`의 `userEarnedReward` 이벤트로 검증
+- [ ] 광고 토큰 서버 검증 (MVP에서는 클라이언트 `userEarnedReward` 이벤트로 대체, 추후 필요)
+
+---
+
+## 10. 데이터 흐름 (v1.5)
+
+### 10-1. lib/supabase.ts 함수 목록
+
+| 함수 | 설명 |
 |------|------|
-| 주사위 결과 조작 | 클라이언트에서 항상 6을 보낼 수 있음 |
-| 하루 1회 제한 우회 | 로컬 상태 초기화 후 재요청 가능 |
-| 광고 재대결 중복 요청 | has_rematch 플래그를 서버에서 체크하지 않으면 무한 재시도 가능 |
-| 과거 날짜 삽입 | 클라이언트 날짜를 서버와 다르게 보낼 수 있음 |
-
-> 경품/보상이 없는 서비스라도 랭킹이 있으면 조작 동기가 생긴다.  
-> 최소한 서버에서 날짜·횟수 검증은 필수.
-
-### 9-2. 하루 1회 제한 처리 (서버)
-
-```
-[클라이언트] → POST /api/play 요청
-
-[서버 처리]
-1. 요청에서 user_id 추출 (Toss SDK 토큰 or Supabase JWT)
-2. 서버 시각 기준으로 한국 날짜(KST) 계산
-   - 클라이언트 날짜 파라미터는 무시
-3. dice_daily_battle 에서 WHERE user_id = ? AND battle_date = today 조회
-4. 행이 이미 존재하면 → 409 Conflict + "오늘은 이미 플레이했어요" 반환
-5. 행이 없으면 정상 진행
-```
-
-**핵심: `battle_date`는 반드시 서버 시각으로 계산 (KST UTC+9 기준)**
-
-```
-서버 날짜 = new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' })
-```
-
-### 9-3. 광고 재대결 1회 제한 처리 (서버)
-
-```
-[클라이언트] → POST /api/rematch 요청
-                (광고 완료 토큰 포함: ad_token)
-
-[서버 처리]
-1. user_id 인증
-2. 서버 기준 오늘 날짜로 dice_daily_battle 조회
-3. 행이 없으면 → 400 Bad Request (아직 플레이 안 함)
-4. has_rematch = true 이면 → 409 Conflict (이미 재대결 완료)
-5. ad_token 유효성 검증 (광고 제공사 콜백 or 토큰 확인, 검토 필요)
-6. 새 AI 주사위 서버에서 생성 (Math.random 기반 1~6)
-7. 결과 판정
-8. dice_daily_battle UPDATE: rematch 컬럼들, has_rematch = true, final_result 갱신
-9. dice_streak_state UPSERT: 최종 결과 기준으로 스트릭 업데이트
-```
-
-> **ad_token 검증:** 광고 제공사(예: Google AdMob, Kakao AdFit 등) 서버 사이드 콜백으로  
-> 실제 광고를 봤는지 확인하는 것이 이상적. MVP에서는 간소화 가능하나 추후 필수.
-
-### 9-4. 결과 저장 및 최종 확정 흐름
-
-```
-[1차 플레이]
-  → 서버에서 AI 주사위 생성
-  → dice_daily_battle INSERT (final_result = result)
-  → dice_streak_state UPSERT (1차 결과 기준)
-  → 클라이언트에 결과 반환
-
-[광고 후 재대결]
-  → 서버에서 새 AI 주사위 생성
-  → dice_daily_battle UPDATE (rematch 컬럼 + final_result = rematch_result)
-  → dice_streak_state UPSERT (재대결 결과로 덮어씀)
-  → 클라이언트에 최종 결과 반환
-```
-
-**중요: 스트릭 업데이트는 final_result 기준으로 단 한 번만 확정**  
-1차 결과로 업데이트 후, 재대결 시 재대결 결과로 재업데이트 (덮어쓰기 방식).
-
-### 9-5. 최소 서버 검증 체크리스트
-
-- [x] 사용자 인증 (Supabase JWT 또는 Toss 토큰)
-- [x] 날짜는 서버 KST 기준 계산
-- [x] 하루 1회 제한: DB UNIQUE 제약 + 사전 조회
-- [x] 재대결 1회 제한: has_rematch 컬럼 DB 확인
-- [x] AI 주사위: 서버에서만 생성, 클라이언트 요청값 사용 안 함
-- [x] 모든 결과 저장: 서버에서만 INSERT/UPDATE
+| `getTodayStatus(tossUserId)` | 오늘 배틀 + 스트릭 조회 |
+| `savePlay(tossUserId)` | 1차 플레이 저장 |
+| `saveRematch(tossUserId)` | 재대결 저장 |
+| `getRanking(category, tossUserId)` | 랭킹 TOP10 조회 |
+| `getMyRecords(tossUserId)` | 최근 7일 기록 + 스트릭 조회 |
 
 ---
-
-## 10. 최소 API 흐름 설계
-
-### 10-1. 설계 원칙
-
-- API 개수 최소화 (5개 이내)
-- 프론트 ↔ 서버 불필요한 왕복 제거
-- 최초 진입 시 오늘 상태를 한 번에 반환 (홈 화면 즉시 렌더링)
-
-### 10-2. API 목록
-
-| # | 엔드포인트 | 메서드 | 설명 |
-|---|-----------|--------|------|
-| 1 | `/api/today-status` | GET | 오늘 플레이 상태 + 내 스트릭 |
-| 2 | `/api/play` | POST | 1차 주사위 굴리기 |
-| 3 | `/api/rematch` | POST | 광고 후 재대결 |
-| 4 | `/api/ranking` | GET | 랭킹 TOP5 조회 |
-| 5 | `/api/my-records` | GET | 내 최근 7일 기록 |
-
----
-
-### 10-3. API 상세
-
-#### GET `/api/today-status`
-
-**호출 시점:** 앱 최초 진입 시 (홈 화면 마운트)
-
-**응답 (예시):**
-```json
-{
-  "today": {
-    "played": true,
-    "result": "lose",
-    "user_roll": 3,
-    "ai_roll": 5,
-    "has_rematch": false,
-    "final_result": "lose"
-  },
-  "streak": {
-    "current_win_streak": 0,
-    "current_lose_streak": 1,
-    "max_win_streak": 5
-  }
-}
-```
-
-**미플레이 시 응답:**
-```json
-{
-  "today": null,
-  "streak": {
-    "current_win_streak": 3,
-    "current_lose_streak": 0,
-    "max_win_streak": 5
-  }
-}
-```
-
----
-
-#### POST `/api/play`
-
-**호출 시점:** 플레이 화면에서 "굴리기" 버튼 탭 시
-
-**요청 Body:**
-```json
-{}
-```
-(사용자 식별은 JWT 헤더에서 추출, 날짜는 서버에서 결정)
-
-**응답:**
-```json
-{
-  "user_roll": 4,
-  "ai_roll": 2,
-  "result": "win",
-  "current_win_streak": 4
-}
-```
-
-**오류:**
-- `409 Conflict` → 오늘 이미 플레이함
-- `401 Unauthorized` → 인증 실패
-
----
-
-#### POST `/api/rematch`
-
-**호출 시점:** 광고 완료 후
-
-**요청 Body:**
-```json
-{
-  "ad_token": "광고제공사_검증토큰"
-}
-```
-
-**응답:**
-```json
-{
-  "rematch_user_roll": 4,
-  "rematch_ai_roll": 6,
-  "rematch_result": "lose",
-  "final_result": "lose",
-  "current_win_streak": 0,
-  "current_lose_streak": 1
-}
-```
-
-**오류:**
-- `409 Conflict` → 이미 재대결 완료
-- `400 Bad Request` → 오늘 플레이 기록 없음
-- `400 Bad Request` → ad_token 검증 실패
-
----
-
-#### GET `/api/ranking`
-
-**호출 시점:** 랭킹 화면 진입 시
-
-**쿼리 파라미터:**
-```
-category=win_streak  (MVP에서 이것만)
-```
-
-**응답:**
-```json
-{
-  "category": "win_streak",
-  "updated_at": "2026-04-03T12:00:00Z",
-  "rankings": [
-    { "rank": 1, "display_name": "주사위고수", "score": 12, "achieved_at": "2026-04-03T08:30:00Z" },
-    { "rank": 2, "display_name": "행운아", "score": 9, "achieved_at": "2026-04-02T19:10:00Z" },
-    ...
-  ],
-  "my_rank": {
-    "rank": 14,
-    "score": 4
-  }
-}
-```
-
-**캐시 전략:** `dice_leaderboard_cache` 에서 읽기 (실시간 집계 없음)
-
----
-
-#### GET `/api/my-records`
-
-**호출 시점:** 내 기록 화면 진입 시
-
-**응답:**
-```json
-{
-  "recent_7_days": [
-    { "date": "2026-04-03", "user_roll": 3, "ai_roll": 5, "final_result": "lose", "had_rematch": false },
-    { "date": "2026-04-02", "user_roll": 6, "ai_roll": 2, "final_result": "win",  "had_rematch": false },
-    ...
-  ],
-  "streak": {
-    "current_win_streak": 0,
-    "current_lose_streak": 1,
-    "max_win_streak": 5,
-    "total_plays": 42,
-    "total_wins": 18,
-    "total_losses": 20,
-    "total_draws": 4
-  }
-}
-```
-
----
-
-### 10-4. Next.js API Route 구조 (참고)
-
-```
-src/app/api/
-├── today-status/route.ts     GET  → Supabase 오늘 기록 + 스트릭 조회
-├── play/route.ts             POST → AI 주사위 생성, 결과 저장, 스트릭 업데이트
-├── rematch/route.ts          POST → 광고 토큰 검증, 재대결 처리
-├── ranking/route.ts          GET  → 캐시 테이블 조회
-└── my-records/route.ts       GET  → 7일 기록 + 스트릭 조회
-```
-
----
-
-### 10-5. Supabase Edge Function 구조 (랭킹 갱신용)
 
 ```
 supabase/functions/
@@ -596,6 +412,103 @@ supabase/functions/
 ```
 0 * * * *   → 매 정각마다 갱신
 ```
+
+---
+
+## 11. Toss In-App 배포 구성
+
+> 최종 수정: 2026-04-06 (v1.5 — Supabase 직접 접근으로 전환)
+
+### 11-0. AIT WebView API URL 동작 원리
+
+AIT 번들의 WebView URL은 `granite.config.ts`의 `host/port` 와 **무관**합니다.  
+프로덕션(Toss 앱 내)에서 WebView의 base URL은 Toss 네이티브가 `getWebBundleURL`로 결정합니다.  
+번들의 JS가 `/api/*` 등 상대 경로로 fetch하면 **Toss 인프라 URL로 요청** → HTML 반환 → JSON parse 오류.
+
+**해결 (v1.5):**
+- Next.js API Route 및 Edge Function 프록시를 완전히 제거.
+- 클라이언트에서 Supabase URL(`NEXT_PUBLIC_SUPABASE_URL`)로 직접 fetch.  
+- Supabase URL은 절대 경로이므로 AIT WebView에서도 정상 동작.
+
+### 11-1. 파일 구성
+
+| 파일 | 역할 |
+|------|------|
+| `public/app.json` | **Granite 스키마 (schemaVersion 1)** — `ait build` 후 `scripts/post-ait-build.mjs`가 deploymentId를 자동 갱신 |
+| `app.json` (루트) | 레거시 AIT v2 스키마 호환용 — `ait.adUnitId`, `ait.deploymentId` 포함 |
+| `granite.config.ts` | `@apps-in-toss/web-framework` 설정 — `appName`, 브랜드 정보, `outdir: 'out'` |
+| `next.config.ts` | AIT 빌드 시에만 `output: 'export'` (`AIT_DEPLOYMENT_ID` 또는 `NEXT_BUILD_FOR_AIT` 존재 시) |
+| `lib/supabase.ts` | Supabase 직접 접근 데이터 레이어 — 모든 DB 조작 함수 포함 |
+| `features/dice/components/RematchButton.tsx` | GoogleAdMob 리워드 광고 연동 — `userEarnedReward` 이벤트로 재대결 트리거 |
+| `scripts/post-ait-build.mjs` | `ait build` 완료 후 AIT 바이너리에서 deploymentId를 읽어 `public/app.json` + `app.json` 자동 갱신 |
+
+### 11-2. deploymentId 생성 방식
+
+- **생성:** `ait build` 실행 때마다 Granite CLI가 새 UUIDv7을 **자동 생성**
+- **동기화:** `scripts/post-ait-build.mjs`(AIT 바이너리 직접 파싱)가 빌드 후 `public/app.json` 및 `app.json`을 자동 갱신
+- **등록:** 출력된 deploymentId를 Toss 파트너 포털에 등록
+
+### 11-3. AIT 빌드 파이프라인
+
+```bash
+npm run build:ait   # ait build && node scripts/post-ait-build.mjs
+```
+
+실행 순서:
+1. `ait build` CLI — RN 0.84.0 빌드 → RN 0.72.6 빌드 → `.ait` 아티팩트 패키징
+2. `node scripts/post-ait-build.mjs` — AIT 바이너리에서 deploymentId 추출 → `public/app.json` + `app.json` 갱신
+
+```
+◇  [1/2] Built for RN 0.84.0
+◇  [2/2] Built for RN 0.72.6
+◇  Creating .ait artifact...
+◆  AIT build completed (today-dice.ait)
+●  deploymentId: <생성된-UUIDv7>
+```
+
+### 11-4. 환경변수
+
+```env
+# Supabase 접속 정보 (클라이언트 공개 가능)
+NEXT_PUBLIC_SUPABASE_URL=https://dxuvdvvdpcbkilesovoc.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+
+# AIT 리워드 광고 그룹 ID (Toss 파트너 포털에서 발급)
+NEXT_PUBLIC_AIT_AD_ID=ait.v2.live.544f01132f2a43ec
+```
+
+### 11-5. 리워드 광고 연동 (v1.6)
+
+> `features/dice/components/RematchButton.tsx`에 구현.  
+> 기존의 존재하지 않는 `window.TossAdSDK.requestRewardedAd`를 제거하고  
+> `@apps-in-toss/web-framework`의 `GoogleAdMob` API로 교체.
+
+**광고 흐름:**
+
+```
+[컴포넌트 마운트]
+  └─ GoogleAdMob.loadAppsInTossAdMob.isSupported() 확인
+       └─ true  → loadAppsInTossAdMob({ adGroupId: AIT_AD_ID })
+                   → onEvent('loaded') → adLoaded = true
+       └─ false → adLoaded = true (개발 환경 폴백)
+
+[재대결 버튼 클릭]
+  └─ GoogleAdMob.showAppsInTossAdMob.isSupported() 확인
+       └─ true  → showAppsInTossAdMob({ adGroupId: AIT_AD_ID })
+                   → onEvent('userEarnedReward') → saveRematch() 호출
+       └─ false → dev 토큰으로 즉시 saveRematch() 호출 (개발 환경)
+```
+
+**사용 패키지:** `@apps-in-toss/web-framework` (내부적으로 `@apps-in-toss/web-bridge` re-export)
+
+**핵심 이벤트 타입:**
+
+| 이벤트 | 의미 |
+|--------|------|
+| `loaded` | 광고 프리로드 완료 — 버튼을 활성화해도 됨 |
+| `userEarnedReward` | 사용자가 광고를 끝까지 시청함 — **재대결 허용** |
+| `dismissed` | 사용자가 광고 창을 닫음 (시청 완료와 별개) |
+| `failedToShow` | 광고 재생 실패 — 재대결 허용하지 않음 |
 
 ---
 

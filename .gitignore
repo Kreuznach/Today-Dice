@@ -39,6 +39,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# AIT 빌드 패키지 (앱인토스 심사 제출용)
+*.ait
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -5,10 +5,12 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "build:ait": "ait build && node scripts/post-ait-build.mjs",
+    "ait": "node --no-deprecation scripts/run-granite.mjs"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.10.0",
+    "@apps-in-toss/web-framework": "^2.4.1",
     "@supabase/supabase-js": "^2.101.1",
     "next": "16.2.2",
     "react": "19.2.4",

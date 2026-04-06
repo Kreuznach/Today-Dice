@@ -6,6 +6,7 @@ import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { getOrCreateGuestId } from '@/lib/auth'
+import { getRanking } from '@/lib/supabase'
 import type { RankingResponse } from '@/types'
 
 const MEDAL: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' }
@@ -36,10 +37,7 @@ export default function RankingPage() {
     setLoading(true)
     setError(null)
     const userId = getOrCreateGuestId()
-    fetch(`/api/ranking?category=${category}`, {
-      headers: { Authorization: `Bearer ${userId}` },
-    })
-      .then((r) => r.json())
+    getRanking(category, userId)
       .then(setData)
       .catch(() => setError('랭킹을 불러오지 못했습니다.'))
       .finally(() => setLoading(false))

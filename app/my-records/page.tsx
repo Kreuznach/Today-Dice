@@ -6,6 +6,7 @@ import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { getOrCreateGuestId } from '@/lib/auth'
+import { getMyRecords } from '@/lib/supabase'
 import type { MyRecordsResponse, TodayBattle } from '@/types'
 
 const RESULT_LABEL: Record<string, { text: string; color: string }> = {
@@ -75,10 +76,7 @@ export default function MyRecordsPage() {
 
   useEffect(() => {
     const userId = getOrCreateGuestId()
-    fetch('/api/my-records', {
-      headers: { Authorization: `Bearer ${userId}` },
-    })
-      .then((r) => r.json())
+    getMyRecords(userId)
       .then(setData)
       .catch(() => setError('기록을 불러오지 못했습니다.'))
       .finally(() => setLoading(false))

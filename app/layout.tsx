@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: '데일리 주사위 배틀',
+  title: '오늘의 주사위',
   description: '오늘의 운을 10초 만에 확인하는 1일 1회 AI 주사위 대결',
 }
 

@@ -1,4 +1,4 @@
-# 데일리 주사위 배틀 — 프로젝트 플랜
+# 오늘의 주사위 — 프로젝트 플랜
 
 > 작성일: 2026-04-03  
 > 버전: v0.1 (MVP 초안)  
@@ -112,7 +112,7 @@ Today-Dice/
 | `api/rematch/route.ts` | 재대결 제한 체크 + 광고 검증 + 재판정 |
 | `supabase/functions/update-leaderboard/` | 1시간 캐시 갱신 |
 
-### 11-3. 환경변수 (.env.example)
+### 11-3. 환경변수 (.env.local.example)
 
 ```env
 # Supabase
@@ -120,16 +120,18 @@ NEXT_PUBLIC_SUPABASE_URL=https://dxuvdvvdpcbkilesovoc.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
 
-# 앱
-NEXT_PUBLIC_APP_ENV=development
+# 앱 (production: Toss in App 배포, development: 로컬 개발)
+NEXT_PUBLIC_APP_ENV=production
 TZ=Asia/Seoul
 
-# 광고 (검토 필요: 광고 제공사 선정 후 추가)
-# AD_PROVIDER_CALLBACK_SECRET=your_secret_here
+# App-in-Toss 광고 SDK (AIT v2, deployment ID: 019d6168-68eb-7837-ac20-cf469e0d62ba)
+NEXT_PUBLIC_AIT_AD_ID=ait.v2.live.544f01132f2a43ec
 ```
 
 > `SUPABASE_SERVICE_ROLE_KEY` 는 서버 API Route에서만 사용  
-> 절대로 클라이언트(`NEXT_PUBLIC_`)에 노출 금지
+> 절대로 클라이언트(`NEXT_PUBLIC_`)에 노웈 금지  
+> AIT SDK v2 확인: 광고 ID 접두사 `ait.v2.live.`  
+> deployment ID `019d6168-68eb-7837-ac20-cf469e0d62ba` — `ait build` 실행 시 Granite CLI가 새 UUIDv7을 자동 생성합니다
 
 ---
 

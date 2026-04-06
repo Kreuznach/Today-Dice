@@ -14,7 +14,7 @@ export default function HomePage() {
   return (
     <main className="flex flex-col flex-1 px-5 pt-10 pb-8 gap-6">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold text-gray-900">데일리 주사위 배틀</h1>
+        <h1 className="text-2xl font-bold text-gray-900">오늘의 주사위</h1>
         <p className="text-sm text-gray-500">오늘의 운을 확인해보세요</p>
       </div>
 
