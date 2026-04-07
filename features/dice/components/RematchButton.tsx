@@ -1,64 +1,41 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { GoogleAdMob } from '@apps-in-toss/web-framework'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Button from '@/components/ui/Button'
-
-const AIT_AD_ID = process.env.NEXT_PUBLIC_AIT_AD_ID ?? 'ait.v2.live.544f01132f2a43ec'
+import { watchAd } from '@/lib/ads'
 
 interface RematchButtonProps {
   hasRematch: boolean
-  onAdComplete: (adToken: string) => void
-  loading?: boolean
 }
 
-export default function RematchButton({ hasRematch, onAdComplete, loading = false }: RematchButtonProps) {
-  const [adLoaded, setAdLoaded] = useState(false)
-  const cleanupRef = useRef<(() => void) | null>(null)
-
-  useEffect(() => {
-    if (hasRematch) return
-    if (GoogleAdMob.loadAppsInTossAdMob.isSupported() !== true) return
-
-    const cleanup = GoogleAdMob.loadAppsInTossAdMob({
-      options: { adGroupId: AIT_AD_ID },
-      onEvent: (event) => {
-        if (event.type === 'loaded') {
-          setAdLoaded(true)
-        }
-      },
-      onError: () => {
-        // 광고 로드 실패 시 폴백(개발 환경)에서는 버튼 활성화
-        setAdLoaded(true)
-      },
-    })
-    cleanupRef.current = cleanup
-
-    return () => {
-      cleanupRef.current?.()
-      cleanupRef.current = null
-    }
-  }, [hasRematch])
+/**
+ * 재대결 버튼 — 광고 시청 후 /play/rematch 로 이동
+ *
+ * 플로우: [버튼 클릭] → [광고 시청] → /play/rematch → 주사위 애니메이션 → /result/final
+ */
+export default function RematchButton({ hasRematch }: RematchButtonProps) {
+  const router = useRouter()
+  const [adLoading, setAdLoading] = useState(false)
+  const [adError, setAdError] = useState<string | null>(null)
 
   if (hasRematch) return null
 
   async function handleClick() {
-    // AIT 광고 SDK가 지원되는 환경 (Toss 앱 내 WebView)
-    if (GoogleAdMob.showAppsInTossAdMob.isSupported() === true) {
-      GoogleAdMob.showAppsInTossAdMob({
-        options: { adGroupId: AIT_AD_ID },
-        onEvent: (event) => {
-          if (event.type === 'userEarnedReward') {
-            onAdComplete(`ait_reward_${AIT_AD_ID}_${Date.now()}`)
-          }
-        },
-        onError: () => {
-          // 광고 재생 실패 — 아무것도 하지 않음
-        },
-      })
-    } else {
-      // 개발 환경 또는 비-Toss 브라우저 폴백
-      onAdComplete(`dev_ad_${Date.now()}`)
+    setAdLoading(true)
+    setAdError(null)
+    try {
+      const rewarded = await watchAd()
+      if (!rewarded) {
+        setAdError('광고를 끝까지 시청해야 재도전 기회를 얻을 수 있어요.')
+        return
+      }
+      // 광고 시청 완료 → 재대결 플레이 화면으로 이동
+      router.push('/play/rematch')
+    } catch {
+      setAdError('광고를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')
+    } finally {
+      setAdLoading(false)
     }
   }
 
@@ -68,10 +45,13 @@ export default function RematchButton({ hasRematch, onAdComplete, loading = fals
         variant="secondary"
         fullWidth
         onClick={handleClick}
-        disabled={loading}
+        disabled={adLoading}
       >
-        {loading ? '처리 중...' : '오늘 한 번 더 굴려볼게요'}
+        {adLoading ? '광고 불러오는 중...' : '오늘 한 번 더 굴려볼게요'}
       </Button>
+      {adError && (
+        <p className="text-xs text-red-500 text-center px-4">{adError}</p>
+      )}
       <p className="text-xs text-gray-400 text-center leading-relaxed px-4">
         짧은 동영상 시청 후 오늘 마지막으로 한 번 더 굴릴 수 있어요.<br />
         단, 이 결과가 오늘의 최종 기록이 됩니다.

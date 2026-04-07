@@ -8,12 +8,10 @@ import StreakBadge from '@/features/dice/components/StreakBadge'
 import RematchButton from '@/features/dice/components/RematchButton'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
-import { useRematch } from '@/features/dice/hooks/useRematch'
 import type { PlayResponse } from '@/types'
 
 export default function ResultPage() {
   const router = useRouter()
-  const { rematch, loading: rematchLoading, error: rematchError } = useRematch()
   const [result, setResult] = useState<PlayResponse | null>(null)
 
   useEffect(() => {
@@ -28,14 +26,6 @@ export default function ResultPage() {
       router.replace('/')
     }
   }, [router])
-
-  async function handleAdComplete(adToken: string) {
-    const rematchResult = await rematch(adToken)
-    if (rematchResult) {
-      sessionStorage.setItem('rematch_result', JSON.stringify(rematchResult))
-      router.push('/result/final')
-    }
-  }
 
   if (!result) return null
 
@@ -61,17 +51,7 @@ export default function ResultPage() {
         )}
       </Card>
 
-      {rematchError && (
-        <p className="text-sm text-red-500 text-center bg-red-50 px-4 py-3 rounded-2xl">
-          {rematchError}
-        </p>
-      )}
-
-      <RematchButton
-        hasRematch={result.battle.has_rematch}
-        onAdComplete={handleAdComplete}
-        loading={rematchLoading}
-      />
+      <RematchButton hasRematch={result.battle.has_rematch} />
 
       <div className="mt-auto">
         <Link href="/">

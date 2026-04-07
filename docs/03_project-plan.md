@@ -23,7 +23,9 @@ Today-Dice/
 │   │   ├── layout.tsx              ← 전체 레이아웃 (Toss WebView 최적화)
 │   │   ├── page.tsx                ← 홈 화면 (/)
 │   │   ├── play/
-│   │   │   └── page.tsx            ← 플레이 화면 (/play)
+│   │   │   ├── page.tsx            ← 플레이 화면 (/play)
+│   │   │   └── rematch/
+│   │   │       └── page.tsx        ← 재도전 플레이 화면 (/play/rematch)
 │   │   ├── result/
 │   │   │   ├── page.tsx            ← 결과 화면 (/result)
 │   │   │   └── final/
@@ -73,6 +75,7 @@ Today-Dice/
 │   │   ├── game-logic.ts           ← 주사위 판정/스트릭 로직 (서버용)
 │   │   ├── date-utils.ts           ← KST 날짜 처리 유틸
 │   │   ├── auth.ts                 ← Toss 사용자 인증 처리
+│   │   ├── ads.ts                  ← AIT 리워드 광고 유틸 (watchAd)
 │   │   └── nickname.ts             ← 랜덤 닉네임 생성 (형용사+명사+#4자리)
 │   │
 │   └── types/
@@ -244,6 +247,7 @@ NEXT_PUBLIC_AIT_AD_ID=ait.v2.live.544f01132f2a43ec
 ```
 [입장] → [홈: 오늘 상태 확인] → [플레이 화면] → [굴리기 1회]
        → [결과] → (선택) [재대결 버튼] → [광고 시청]
+       → [재도전 플레이] → [주사위 굴리기] → [애니메이션]
        → [최종 결과] → [홈]
 ```
 

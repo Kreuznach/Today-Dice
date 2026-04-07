@@ -1,8 +1,8 @@
 # 오늘의 주사위 — 기술 설계서
 
 > 작성일: 2026-04-03  
-> 최종 수정: 2026-04-06 (v1.6 — GoogleAdMob 광고 SDK 연동, middleware.ts 제거, trailingSlash 적용)  
-> 버전: v1.6  
+> 최종 수정: 2026-04-07 (v1.9 — 광고 유틸 분리(lib/ads.ts), 재도전 플로우 재구성: 광고→플레이→애니메이션→결과)  
+> 버전: v1.9  
 > 데이터베이스: Supabase  
 > 테이블 명명 규칙: 반드시 `dice_` 접두사 사용  
 
@@ -381,7 +381,7 @@ CREATE TABLE dice_leaderboard_cache (
 - [x] 날짜는 KST 기준 계산
 - [x] 하루 1회 제한: Supabase 조회로 중복 확인
 - [x] 재대결 1회 제한: has_rematch 컬럼 확인
-- [x] 광고 시청 완료 확인: `GoogleAdMob.showAppsInTossAdMob`의 `userEarnedReward` 이벤트로 검증
+- [x] 광고 시청 완료 확인: `watchAd()` 내 2단계 load→show 처리 — `dismissed` 이벤트 수신 시 `userEarnedReward` 여부로 최종 판별
 - [ ] 광고 토큰 서버 검증 (MVP에서는 클라이언트 `userEarnedReward` 이벤트로 대체, 추후 필요)
 
 ---
@@ -439,7 +439,9 @@ AIT 번들의 WebView URL은 `granite.config.ts`의 `host/port` 와 **무관**�
 | `granite.config.ts` | `@apps-in-toss/web-framework` 설정 — `appName`, 브랜드 정보, `outdir: 'out'` |
 | `next.config.ts` | AIT 빌드 시에만 `output: 'export'` (`AIT_DEPLOYMENT_ID` 또는 `NEXT_BUILD_FOR_AIT` 존재 시) |
 | `lib/supabase.ts` | Supabase 직접 접근 데이터 레이어 — 모든 DB 조작 함수 포함 |
-| `features/dice/components/RematchButton.tsx` | GoogleAdMob 리워드 광고 연동 — `userEarnedReward` 이벤트로 재대결 트리거 |
+| `lib/ads.ts` | GoogleAdMob 리워드 광고 유틸리티 — 2단계 load→show 처리, `dismissed` 이벤트로 최종 결과 확정 |
+| `features/dice/components/RematchButton.tsx` | 재도전 버튼 — 광고 시청 후 `/play/rematch`로 라우팅 |
+| `app/play/rematch/page.tsx` | 재도전 플레이 화면 — 주사위 애니메이션 + `saveRematch()` 호출 후 `/result/final`로 이동 |
 | `scripts/post-ait-build.mjs` | `ait build` 완료 후 AIT 바이너리에서 deploymentId를 읽어 `public/app.json` + `app.json` 자동 갱신 |
 
 ### 11-2. deploymentId 생성 방식
@@ -477,26 +479,41 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 NEXT_PUBLIC_AIT_AD_ID=ait.v2.live.544f01132f2a43ec
 ```
 
-### 11-5. 리워드 광고 연동 (v1.6)
+### 11-5. 리워드 광고 연동 (v1.9)
 
-> `features/dice/components/RematchButton.tsx`에 구현.  
-> 기존의 존재하지 않는 `window.TossAdSDK.requestRewardedAd`를 제거하고  
-> `@apps-in-toss/web-framework`의 `GoogleAdMob` API로 교체.
+> `lib/ads.ts`에 `watchAd()` 함수로 독립 구현. Today-RPS 프로젝트와 동일한 2단계 순차 처리 방식.  
+> `RematchButton.tsx`에서 import하여 사용. 광고 성공 시 `/play/rematch`로 라우팅.
 
-**광고 흐름:**
+**광고 흐름 (`lib/ads.ts` → `watchAd()`):**
 
 ```
-[컴포넌트 마운트]
-  └─ GoogleAdMob.loadAppsInTossAdMob.isSupported() 확인
-       └─ true  → loadAppsInTossAdMob({ adGroupId: AIT_AD_ID })
-                   → onEvent('loaded') → adLoaded = true
-       └─ false → adLoaded = true (개발 환경 폴백)
+[재대결 버튼 클릭] (RematchButton.tsx)
+  └─ watchAd() 호출
+       └─ _isAitSupported() 확인
+            └─ false → 1.5초 Mock 지연 후 true 반환 (개발 환경)
+            └─ true  →
+                 1단계: loadAppsInTossAdMob({ adGroupId: AD_GROUP_ID })
+                         → onEvent('loaded') → resolve
+                         → onError() → reject
+                 2단계: showAppsInTossAdMob({ adGroupId: AD_GROUP_ID })
+                         → onEvent('userEarnedReward') → rewarded = true
+                         → onEvent('dismissed')        → resolve(rewarded)
+                         → onEvent('failedToShow')     → resolve(false)
+                         → onError()                   → resolve(false)
+  └─ rewarded=true  → router.push('/play/rematch')
+  └─ rewarded=false → 에러 메시지 표시
+```
 
-[재대결 버튼 클릭]
-  └─ GoogleAdMob.showAppsInTossAdMob.isSupported() 확인
-       └─ true  → showAppsInTossAdMob({ adGroupId: AIT_AD_ID })
-                   → onEvent('userEarnedReward') → saveRematch() 호출
-       └─ false → dev 토큰으로 즉시 saveRematch() 호출 (개발 환경)
+### 11-6. 재도전 플레이 플로우 (v1.9)
+
+> 이전(v1.8): 광고 시청 후 즉시 `saveRematch()` → `/result/final` (애니메이션 없음)  
+> 현재(v1.9): 광고 시청 → 플레이 화면(`/play/rematch`) → 주사위 애니메이션 → `/result/final`
+
+```
+[/result]           [광고시청]         [/play/rematch]              [/result/final]
+ 재도전 버튼 ──→ watchAd() ──→ 주사위 굴리기 버튼 ──→ saveRematch() + 애니메이션 ──→ 최종 결과
+                  │                                                        │
+                  └─ 실패 시 에러 메시지                                    └─ sessionStorage에 저장
 ```
 
 **사용 패키지:** `@apps-in-toss/web-framework` (내부적으로 `@apps-in-toss/web-bridge` re-export)
@@ -509,6 +526,18 @@ NEXT_PUBLIC_AIT_AD_ID=ait.v2.live.544f01132f2a43ec
 | `userEarnedReward` | 사용자가 광고를 끝까지 시청함 — **재대결 허용** |
 | `dismissed` | 사용자가 광고 창을 닫음 (시청 완료와 별개) |
 | `failedToShow` | 광고 재생 실패 — 재대결 허용하지 않음 |
+
+**광고 ID 관리 규칙 (v1.8):**
+
+| 항목 | 값 | 비고 |
+|------|-----|------|
+| `NEXT_PUBLIC_AIT_AD_ID` (.env.local) | `ait.v2.live.544f01132f2a43ec` | SDK 호출 시 `adGroupId` |
+| `app.json` ▸ `ait.adUnitId` | `ait.v2.live.544f01132f2a43ec` | AIT 플랫폼 메타데이터 |
+| `deploymentId` | UUIDv7 (빌드마다 갱신) | `adUnitId`와 무관 |
+
+> ⚠️ **주의**: `adUnitId`와 `adGroupId`(SDK 호출)는 반드시 동일한 값이어야 합니다.  
+> Toss AIT 플랫폼은 등록된 `adUnitId`와 SDK 호출의 `adGroupId`가 일치하지 않으면 광고를 서빙하지 않습니다.  
+> `post-ait-build.mjs`는 `deploymentId`만 갱신하며, `adUnitId`는 절대 건드리지 않습니다.
 
 ---
 

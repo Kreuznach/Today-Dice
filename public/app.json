@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1",
   "id": "today-dice",
-  "deploymentId": "019d61f9-6afe-75fa-b00c-1425427d08af",
+  "deploymentId": "019d6633-d487-754c-a0de-3581f12214f2",
   "name": "오늘의 주사위",
   "version": "1.0.0",
   "entry": "index.html",

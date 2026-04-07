@@ -6,10 +6,10 @@
   "category": "entertainment",
   "entryUrl": "/",
   "sdkVersion": "2.0",
-  "deploymentId": "019d61f9-6afe-75fa-b00c-1425427d08af",
+  "deploymentId": "019d6633-d487-754c-a0de-3581f12214f2",
   "ait": {
-    "deploymentId": "019d61f9-6afe-75fa-b00c-1425427d08af",
-    "adUnitId": "ait.v2.live.019d61f9-6afe-75fa-b00c-1425427d08af",
+    "deploymentId": "019d6633-d487-754c-a0de-3581f12214f2",
+    "adUnitId": "ait.v2.live.544f01132f2a43ec",
     "adType": "rewarded"
   },
   "permissions": [],

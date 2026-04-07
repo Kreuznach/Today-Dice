@@ -10,6 +10,10 @@
  * Granite CLI는 ait build 마다 새 UUIDv7 deploymentId를 생성하므로,
  * 이 스크립트를 통해 소스 파일과 항상 동기화합니다.
  *
+ * [주의] adUnitId 는 절대 자동 생성하지 않습니다.
+ * adUnitId 는 Toss 파트너 포털에서 발급된 고정 값이며 deploymentId 와 무관합니다.
+ * 현재 값: ait.v2.live.544f01132f2a43ec
+ *
  * [호출]
  * package.json 의 build:ait 스크립트 끝에 체이닝됩니다:
  *   "ait build && node scripts/post-ait-build.mjs"
@@ -42,7 +46,7 @@ if (!deploymentId) {
   process.exit(1)
 }
 
-const adUnitId = `ait.v2.live.${deploymentId}`
+const adUnitId = 'ait.v2.live.544f01132f2a43ec'
 console.log(`\n📦 deploymentId 동기화: ${deploymentId}`)
 
 // public/app.json 갱신 (Granite 스키마)
