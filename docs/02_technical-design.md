@@ -1,8 +1,8 @@
 # 오늘의 주사위 — 기술 설계서
 
 > 작성일: 2026-04-03  
-> 최종 수정: 2026-04-07 (v1.9 — 광고 유틸 분리(lib/ads.ts), 재도전 플로우 재구성: 광고→플레이→애니메이션→결과)  
-> 버전: v1.9  
+> 최종 수정: 2026-04-11 (v2.0 — 주사위 숫자별 반응 문구 추가(lib/dice-reactions.ts), ResultDisplay에 문구 표시 구현)  
+> 버전: v2.0  
 > 데이터베이스: Supabase  
 > 테이블 명명 규칙: 반드시 `dice_` 접두사 사용  
 
@@ -440,6 +440,7 @@ AIT 번들의 WebView URL은 `granite.config.ts`의 `host/port` 와 **무관**�
 | `next.config.ts` | AIT 빌드 시에만 `output: 'export'` (`AIT_DEPLOYMENT_ID` 또는 `NEXT_BUILD_FOR_AIT` 존재 시) |
 | `lib/supabase.ts` | Supabase 직접 접근 데이터 레이어 — 모든 DB 조작 함수 포함 |
 | `lib/ads.ts` | GoogleAdMob 리워드 광고 유틸리티 — 2단계 load→show 처리, `dismissed` 이벤트로 최종 결과 확정 |
+| `lib/dice-reactions.ts` | 주사위 숫자(1~6)별 반응 문구 데이터 60개 + `getDiceReaction(roll)` 유틸 함수 |
 | `features/dice/components/RematchButton.tsx` | 재도전 버튼 — 광고 시청 후 `/play/rematch`로 라우팅 |
 | `app/play/rematch/page.tsx` | 재도전 플레이 화면 — 주사위 애니메이션 + `saveRematch()` 호출 후 `/result/final`로 이동 |
 | `scripts/post-ait-build.mjs` | `ait build` 완료 후 AIT 바이너리에서 deploymentId를 읽어 `public/app.json` + `app.json` 자동 갱신 |

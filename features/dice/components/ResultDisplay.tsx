@@ -1,4 +1,6 @@
+import { useMemo } from 'react'
 import DiceFace from '@/components/dice/DiceFace'
+import { getDiceReaction } from '@/lib/dice-reactions'
 import type { TodayBattle } from '@/types'
 
 interface ResultDisplayProps {
@@ -17,6 +19,7 @@ export default function ResultDisplay({ battle, isFinal = false }: ResultDisplay
   const userRoll = isFinal && battle.has_rematch ? battle.rematch_user_roll! : battle.user_roll
   const aiRoll = isFinal && battle.has_rematch ? battle.rematch_ai_roll! : battle.ai_roll
   const label = RESULT_LABEL[result]
+  const reaction = useMemo(() => getDiceReaction(userRoll), [userRoll])
 
   return (
     <div className="flex flex-col items-center gap-6">
@@ -36,6 +39,7 @@ export default function ResultDisplay({ battle, isFinal = false }: ResultDisplay
           <span className="text-2xl font-bold text-gray-800">{aiRoll}</span>
         </div>
       </div>
+      <p className="text-sm text-gray-500 text-center">{reaction}</p>
     </div>
   )
 }
