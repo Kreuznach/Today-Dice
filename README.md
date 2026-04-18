@@ -113,6 +113,19 @@ NEXT_PUBLIC_API_BASE_URL=https://<project-ref>.supabase.co/functions/v1
 npm run build:ait
 ```
 
+**캐시 문제가 의심될 때 클린 빌드:**
+
+```bash
+# PowerShell (Windows)
+Remove-Item -Recurse -Force .next, out
+npm run build:ait
+
+# bash (macOS/Linux)
+rm -rf .next out && npm run build:ait
+```
+
+> **프롬프트:** 빌드 중 `Need to install the following packages: node@xx.xx.x` 메시지가 나타나면 `y`를 입력하세요.
+
 빌드 완료 후 터미널에 아래와 같은 출력이 표시되어야 합니다:
 ```
 ◇  [1/2] Built for RN 0.84.0
@@ -126,5 +139,5 @@ npm run build:ait
 포함 내용: RN 0.84/0.72 프리빌드 번들 + Next.js 정적 내보내기(`out/`) + `public/app.json`
 
 > `today-dice.ait` 파일은 `.gitignore`에 포함되어 있어 커밋되지 않습니다.  
-> 빌드할 때마다 새 deploymentId가 생성됩니다. `scripts/update-app-json.mjs`가 `public/app.json`을 자동으로 최신화합니다.
+> 빌드할 때마다 새 deploymentId가 생성되면 `scripts/post-ait-build.mjs`가 `public/app.json`을 자동으로 최신화합니다.  
 > 제출 전 출력된 `deploymentId`를 Toss 파트너 포털에 등록하세요.

@@ -1,8 +1,8 @@
 # 오늘의 주사위 — 기술 설계서
 
 > 작성일: 2026-04-03  
-> 최종 수정: 2026-04-18 (v2.1 — 랭킹 화면 내 `is_me` 강조 UI 추가, `DiceRollAnimation.tsx`·`extractUserId`·미사용 스크립트 제거)  
-> 버전: v2.1  
+> 최종 수정: 2026-04-18 (v2.2 — 클린 빌드 절차 및 빌드 명령어 설명 추가, deploymentId 최신화)  
+> 버전: v2.2  
 > 데이터베이스: Supabase  
 > 테이블 명명 규칙: 반드시 `dice_` 접두사 사용  
 
@@ -453,11 +453,39 @@ AIT 번들의 WebView URL은 `granite.config.ts`의 `host/port` 와 **무관**�
 
 ### 11-3. AIT 빌드 파이프라인
 
+#### 일반 빌드
+
 ```bash
 npm run build:ait   # ait build && node scripts/post-ait-build.mjs
 ```
 
-실행 순서:
+#### 클린 빌드 (캐시 문제 발생 시 필수)
+
+빌드 캐시(`.next/`)와 정적 export 결과물(`out/`)이 남아 있으면 최신 소스가 반영되지 않을 수 있습니다.  
+변경사항이 `.ait`에 포함되지 않는다고 의심될 때는 반드시 클린 빌드를 실행하세요.
+
+```bash
+# 1. 캐시 제거
+Remove-Item -Recurse -Force .next, out   # PowerShell (Windows)
+rm -rf .next out                         # bash (macOS/Linux)
+
+# 2. ait 파일 재빌드
+npm run build:ait
+```
+
+#### 빌드 중 프롬프트 안내
+
+`npm run build:ait` 실행 시 아래 프롬프트가 표시될 수 있습니다. `y`를 입력하면 계속 진행됩니다.
+
+```
+Need to install the following packages:
+node@xx.xx.x
+Ok to proceed? (y)
+```
+
+> **DEP0190 DeprecationWarning** 경고도 함께 출력될 수 있으나, `ait build` 내부의 알려진 경고이며 빌드 결과에 영향을 주지 않습니다.
+
+#### 실행 순서
 1. `ait build` CLI — RN 0.84.0 빌드 → RN 0.72.6 빌드 → `.ait` 아티팩트 패키징
 2. `node scripts/post-ait-build.mjs` — AIT 바이너리에서 deploymentId 추출 → `public/app.json` + `app.json` 갱신
 
@@ -468,6 +496,16 @@ npm run build:ait   # ait build && node scripts/post-ait-build.mjs
 ◆  AIT build completed (today-dice.ait)
 ●  deploymentId: <생성된-UUIDv7>
 ```
+
+#### 현재 deploymentId
+
+| 항목 | 값 |
+|------|----|
+| deploymentId (최신 빌드) | `019d9f21-76ee-7473-9898-eb0ae6e9254c` |
+| adUnitId (고정) | `ait.v2.live.544f01132f2a43ec` |
+
+> `deploymentId`는 `npm run build:ait` 실행마다 Granite CLI가 새 UUIDv7을 자동 생성합니다.  
+> 빌드 후 Toss 파트너 포털에 출력된 최신 `deploymentId`를 등록해야 합니다.
 
 ### 11-4. 환경변수
 
