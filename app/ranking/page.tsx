@@ -107,17 +107,42 @@ export default function RankingPage() {
             {data.entries.map((entry, i) => (
               <div
                 key={i}
-                className="flex items-center px-5 py-3.5 border-b border-gray-50 last:border-0"
+                className={[
+                  'flex items-center px-5 py-3.5 border-b last:border-0 overflow-hidden',
+                  entry.is_me
+                    ? 'ranking-me border-indigo-100'
+                    : 'border-gray-50',
+                ].join(' ')}
               >
                 <span className="w-8 text-lg shrink-0">
                   {MEDAL[entry.rank] ?? entry.rank}
                 </span>
-                <span className="flex-1 text-sm font-medium text-gray-800 truncate">
+                <span
+                  className={[
+                    'flex-1 text-sm font-medium truncate',
+                    entry.is_me ? 'text-indigo-700 font-bold' : 'text-gray-800',
+                  ].join(' ')}
+                >
                   {entry.display_name}
+                  {entry.is_me && (
+                    <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500 text-white leading-none align-middle">
+                      나
+                    </span>
+                  )}
                 </span>
-                <span className="text-sm font-bold text-blue-500 shrink-0">
+                <span
+                  className={[
+                    'text-sm font-bold shrink-0',
+                    entry.is_me ? 'text-indigo-500' : 'text-blue-500',
+                  ].join(' ')}
+                >
                   {entry.score}
-                  <span className="text-xs font-normal text-blue-400 ml-0.5">
+                  <span
+                    className={[
+                      'text-xs font-normal ml-0.5',
+                      entry.is_me ? 'text-indigo-400' : 'text-blue-400',
+                    ].join(' ')}
+                  >
                     {currentTab.unit}
                   </span>
                 </span>

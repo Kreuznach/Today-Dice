@@ -1,8 +1,8 @@
 # 오늘의 주사위 — 기술 설계서
 
 > 작성일: 2026-04-03  
-> 최종 수정: 2026-04-11 (v2.0 — 주사위 숫자별 반응 문구 추가(lib/dice-reactions.ts), ResultDisplay에 문구 표시 구현)  
-> 버전: v2.0  
+> 최종 수정: 2026-04-18 (v2.1 — 랭킹 화면 내 `is_me` 강조 UI 추가, `DiceRollAnimation.tsx`·`extractUserId`·미사용 스크립트 제거)  
+> 버전: v2.1  
 > 데이터베이스: Supabase  
 > 테이블 명명 규칙: 반드시 `dice_` 접두사 사용  
 
@@ -19,9 +19,9 @@
 | `003_create_dice_streak_state.sql` | ✅ 적용 완료 |
 | `004_create_dice_leaderboard_cache.sql` | ✅ 적용 완료 |
 | `005_create_rls_policies.sql` | ✅ 적용 완료 |
-| `006_add_streak_extra_columns.sql` | ⚠️ **미적용 — 아래 방법으로 적용 필요** |
-| `007_add_stats_columns.sql` | ⚠️ **미적용 — 006 적용 후 이어서 적용 필요** |
-| `008_allow_anon_access.sql` | ⚠️ **미적용 — 반드시 적용 필요 (직접 접근 활성화)** |
+| `006_add_streak_extra_columns.sql` | ✅ 적용 완료 |
+| `007_add_stats_columns.sql` | ✅ 적용 완료 |
+| `008_allow_anon_access.sql` | ✅ 적용 완료 |
 
 ### migration 006 적용 방법 (Supabase Dashboard)
 

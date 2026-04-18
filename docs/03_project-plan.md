@@ -53,8 +53,7 @@ Today-Dice/
 │   │   │   └── LoadingSpinner.tsx
 │   │   └── dice/
 │   │       ├── DiceFace.tsx        ← 주사위 면 렌더링 (2D SVG, 결과 화면)
-│   │       ├── Dice3D.tsx          ← CSS 3D 큐브 주사위 (플레이 화면 + 애니메이션)
-│   │       └── DiceRollAnimation.tsx ← (레거시, 미사용)
+│   │       └── Dice3D.tsx          ← CSS 3D 큐브 주사위 (플레이 화면 + 애니메이션)
 │   │
 │   ├── features/
 │   │   └── dice/
@@ -110,7 +109,7 @@ Today-Dice/
 |------|------|
 | `lib/game-logic.ts` | AI 주사위 생성 + 승패 판정 (서버에서만 사용) |
 | `lib/date-utils.ts` | KST 기준 오늘 날짜 계산 |
-| `lib/auth.ts` | Toss in App 토큰 → Supabase 사용자 매핑 |
+| `lib/auth.ts` | 게스트 ID 관리 (`getOrCreateGuestId`) |
 | `api/play/route.ts` | 1회 제한 체크 + 주사위 판정 + DB 저장 |
 | `api/rematch/route.ts` | 재대결 제한 체크 + 광고 검증 + 재판정 |
 | `supabase/functions/update-leaderboard/` | 1시간 캐시 갱신 |

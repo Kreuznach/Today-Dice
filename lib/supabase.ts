@@ -279,6 +279,7 @@ export async function getRanking(rawCategory: string, tossUserId: string | null)
 
   let myRank: number | null = null
   let myScore: number | null = null
+  let myUserId: string | null = null
 
   if (tossUserId) {
     const { data: myUser } = await db
@@ -288,6 +289,7 @@ export async function getRanking(rawCategory: string, tossUserId: string | null)
       .maybeSingle()
 
     if (myUser) {
+      myUserId = myUser.id
       const { data: myRow } = await db
         .from('dice_streak_state')
         .select(column)
@@ -319,7 +321,7 @@ export async function getRanking(rawCategory: string, tossUserId: string | null)
       display_name: users?.display_name ?? '알 수 없음',
       score,
       achieved_at: row.last_streak_achieved_at ?? row.updated_at,
-      is_me: false,
+      is_me: myUserId !== null && row.user_id === myUserId,
     }
   })
 
