@@ -1,7 +1,7 @@
 # 오늘의 주사위 — 기술 설계서
 
 > 작성일: 2026-04-03  
-> 최종 수정: 2026-08-23 (v2.3 — 출석·운세·달력 화면 반영. 표는 그대로, 보여주는 방식만 늘림)  
+> 최종 수정: 2026-08-23 (v2.4 — 앱인토스 플로팅 탭바 반영)  
 > 버전: v2.3  
 > 데이터베이스: Supabase  
 > 테이블 명명 규칙: 반드시 `dice_` 접두사 사용  
@@ -413,6 +413,10 @@ CREATE TABLE dice_leaderboard_cache (
 | `features/dice/components/LuckCalendar.tsx` | 최근 30칸 | 작은 달력 |
 | `features/dice/components/BadgeShelf.tsx` | 1·3·7·14·30·100일 스티커 | 수집함 |
 | `features/dice/components/DiceDex.tsx` | 1~6을 한 번이라도 봤는지 | 눈 도감 |
+| `components/ui/FloatingTabBar.tsx` | 홈·랭킹·내 정보 사이 이동 | 화면 아래에 **떠 있는** 둥근 탭바 |
+
+앱인토스 규칙: 탭바를 쓰면 **토스 메인처럼 바닥에 붙인 막대**가 아니라, 아래쪽에 **떠 있는(플로팅)** 모양이어야 한다.  
+탭은 3개(홈 / 랭킹 / 내 정보). 주사위 굴리기·결과 화면에서는 가린다.
 
 검사 명령: `npm run test:retention`
 

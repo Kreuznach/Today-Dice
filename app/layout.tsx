@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import FloatingTabBar from '@/components/ui/FloatingTabBar'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -21,8 +22,9 @@ export default function RootLayout({
     <html lang="ko" className="h-full">
       <body className="min-h-full bg-gray-50 font-sans antialiased">
         {/* Toss WebView 최적화: 최대 너비 제한, 세로 스크롤 */}
-        <div className="mx-auto max-w-md min-h-screen bg-white flex flex-col">
+        <div className="relative mx-auto max-w-md min-h-screen bg-white flex flex-col">
           {children}
+          <FloatingTabBar />
         </div>
       </body>
     </html>

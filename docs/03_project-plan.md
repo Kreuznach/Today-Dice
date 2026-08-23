@@ -1,7 +1,7 @@
 # 오늘의 주사위 — 프로젝트 플랜
 
 > 작성일: 2026-04-03  
-> 마지막 수정: 2026-08-23 (출석·운세 화면 파일 목록 추가)  
+> 마지막 수정: 2026-08-23 (플로팅 탭바 파일 추가)  
 > 버전: v0.2  
 > 기준: Next.js App Router + Supabase + Toss in App WebView  
 
@@ -52,7 +52,8 @@ Today-Dice/
 │   │   ├── ui/
 │   │   │   ├── Button.tsx
 │   │   │   ├── Card.tsx
-│   │   │   └── LoadingSpinner.tsx
+│   │   │   ├── LoadingSpinner.tsx
+│   │   │   └── FloatingTabBar.tsx  ← 앱인토스 플로팅 탭바 (홈/랭킹/내 정보)
 │   │   └── dice/
 │   │       ├── DiceFace.tsx        ← 주사위 면 렌더링 (2D SVG, 결과 화면)
 │   │       └── Dice3D.tsx          ← CSS 3D 큐브 주사위 (플레이 화면 + 애니메이션)

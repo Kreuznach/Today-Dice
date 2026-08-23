@@ -1,9 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
 import Card from '@/components/ui/Card'
-import Button from '@/components/ui/Button'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import BadgeShelf from '@/features/dice/components/BadgeShelf'
 import DiceDex from '@/features/dice/components/DiceDex'
@@ -112,7 +110,7 @@ export default function MyRecordsPage() {
     : '내 정보'
 
   return (
-    <main className="flex flex-col flex-1 px-5 pt-8 pb-8 gap-6">
+    <main className="flex flex-col flex-1 px-5 pt-8 pb-28 gap-6">
       {/* 헤더: 사용자 이름 */}
       <div className="flex flex-col gap-0.5">
         <h1 className="text-xl font-bold text-gray-900">{titleName}</h1>
@@ -253,11 +251,6 @@ export default function MyRecordsPage() {
         </>
       )}
 
-      <div className="mt-auto">
-        <Link href="/">
-          <Button variant="ghost" fullWidth>홈으로</Button>
-        </Link>
-      </div>
     </main>
   )
 }

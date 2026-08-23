@@ -1,9 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import Link from 'next/link'
 import Card from '@/components/ui/Card'
-import Button from '@/components/ui/Button'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { getOrCreateGuestId } from '@/lib/auth'
 import { getRanking } from '@/lib/supabase'
@@ -50,7 +48,7 @@ export default function RankingPage() {
   const currentTab = TABS.find((t) => t.key === activeTab)!
 
   return (
-    <main className="flex flex-col flex-1 px-5 pt-6 pb-8 gap-4">
+    <main className="flex flex-col flex-1 px-5 pt-6 pb-28 gap-4">
       {/* 헤더 */}
       <div className="flex flex-col gap-1">
         <h1 className="text-xl font-bold text-gray-900">랭킹</h1>
@@ -183,11 +181,6 @@ export default function RankingPage() {
         </>
       )}
 
-      <div className="mt-auto">
-        <Link href="/">
-          <Button variant="ghost" fullWidth>홈으로</Button>
-        </Link>
-      </div>
     </main>
   )
 }

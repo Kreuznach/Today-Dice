@@ -1,7 +1,7 @@
 # 오늘의 주사위 — 흥미·리텐션·곁들임 개선안
 
 > 작성일: 2026-08-23  
-> 마지막 수정: 2026-08-23 (P0·P1 화면 반영, AIT 산출물 갱신)  
+> 마지막 수정: 2026-08-23 (P0·P1 화면 반영, 플로팅 탭바)  
 > 목적: 기존 기획/구현을 기준으로, **경품·포인트 없이** 매일 열고 싶은 이유를 늘리는 아이디어 정리  
 > 읽는 사람: 프로그래밍을 막 시작한 중학생도 따라올 수 있게, 어려운 말은 풀어서 적음  
 > 근거 문서: [01_prd.md](./01_prd.md), [02_technical-design.md](./02_technical-design.md), [03_project-plan.md](./03_project-plan.md), [implementation-request.md](./implementation-request.md), [README.md](../README.md)
