@@ -166,6 +166,12 @@ export default function RankingPage() {
             </Card>
           )}
 
+          {(data.my_rank === null || data.my_score === 0) && (
+            <p className="text-xs text-center text-gray-400">
+              매일 오면 출석 기록이 쌓여요. 순위가 없어도 오늘 숫자는 남습니다.
+            </p>
+          )}
+
           {data.updated_at && (
             <p className="text-xs text-gray-400 text-center">
               마지막 갱신:{' '}

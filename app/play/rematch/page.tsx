@@ -71,10 +71,10 @@ export default function RematchPlayPage() {
       <div className="flex flex-col items-center gap-2">
         <h1 className="text-xl font-bold text-gray-900">재도전!</h1>
         <p className="text-sm text-blue-500 font-medium">
-          이번이 오늘의 마지막 기회예요
+          오늘의 마지막 주사위예요
         </p>
         <p className="text-sm text-gray-500">
-          {isRolling ? '운명을 결정하는 중...' : '버튼을 탭하면 주사위를 굴립니다'}
+          {isRolling ? '주사위가 구르는 중...' : '버튼을 탭하면 주사위를 굴립니다'}
         </p>
       </div>
 

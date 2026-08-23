@@ -7,6 +7,8 @@ import { watchAd } from '@/lib/ads'
 
 interface RematchButtonProps {
   hasRematch: boolean
+  result?: 'win' | 'lose' | 'draw'
+  loseStreak?: number
 }
 
 /**
@@ -14,7 +16,27 @@ interface RematchButtonProps {
  *
  * 플로우: [버튼 클릭] → [광고 시청] → /play/rematch → 주사위 애니메이션 → /result/final
  */
-export default function RematchButton({ hasRematch }: RematchButtonProps) {
+function rematchHint(
+  result?: 'win' | 'lose' | 'draw',
+  loseStreak?: number,
+): string {
+  if (result === 'lose' && (loseStreak ?? 0) > 1) {
+    return '오늘은 여기서 끝낼 수도 있어요.'
+  }
+  if (result === 'lose') {
+    return '연승 기록은 오늘 결과로 갱신돼요.'
+  }
+  if (result === 'draw') {
+    return '무승부도 오늘의 기록이에요.'
+  }
+  return '짧은 동영상 시청 후 오늘 마지막으로 한 번 더 굴릴 수 있어요.'
+}
+
+export default function RematchButton({
+  hasRematch,
+  result,
+  loseStreak,
+}: RematchButtonProps) {
   const router = useRouter()
   const [adLoading, setAdLoading] = useState(false)
   const [adError, setAdError] = useState<string | null>(null)
@@ -53,7 +75,8 @@ export default function RematchButton({ hasRematch }: RematchButtonProps) {
         <p className="text-xs text-red-500 text-center px-4">{adError}</p>
       )}
       <p className="text-xs text-gray-400 text-center leading-relaxed px-4">
-        짧은 동영상 시청 후 오늘 마지막으로 한 번 더 굴릴 수 있어요.<br />
+        {rematchHint(result, loseStreak)}
+        <br />
         단, 이 결과가 오늘의 최종 기록이 됩니다.
       </p>
     </div>

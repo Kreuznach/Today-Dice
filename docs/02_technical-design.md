@@ -1,8 +1,8 @@
 # 오늘의 주사위 — 기술 설계서
 
 > 작성일: 2026-04-03  
-> 최종 수정: 2026-04-18 (v2.2 — 클린 빌드 절차 및 빌드 명령어 설명 추가, deploymentId 최신화)  
-> 버전: v2.2  
+> 최종 수정: 2026-08-23 (v2.3 — 출석·운세·달력 화면 반영. 표는 그대로, 보여주는 방식만 늘림)  
+> 버전: v2.3  
 > 데이터베이스: Supabase  
 > 테이블 명명 규칙: 반드시 `dice_` 접두사 사용  
 
@@ -392,11 +392,29 @@ CREATE TABLE dice_leaderboard_cache (
 
 | 함수 | 설명 |
 |------|------|
-| `getTodayStatus(tossUserId)` | 오늘 배틀 + 스트릭 조회 |
+| `getTodayStatus(tossUserId)` | 오늘 배틀 + 스트릭 + **이번 주 기록** 조회 |
 | `savePlay(tossUserId)` | 1차 플레이 저장 |
 | `saveRematch(tossUserId)` | 재대결 저장 |
 | `getRanking(category, tossUserId)` | 랭킹 TOP10 조회 |
-| `getMyRecords(tossUserId)` | 최근 7일 기록 + 스트릭 조회 |
+| `getMyRecords(tossUserId)` | 최근 **30일** 기록 + 스트릭 조회 (화면에서는 7일 목록 + 30일 달력) |
+
+### 10-2. 화면만 두껍게 하는 도구 (표는 안 바꿈)
+
+초보자를 위한 설명: **표(데이터베이스)는 그대로** 두고, 이미 있는 숫자를 더 재미있게 보여 준다.
+
+| 파일 | 하는 일 | 쉬운 비유 |
+|------|---------|-----------|
+| `lib/date-utils.ts` | 한국 시간 날짜, 자정까지 남은 시간, 일주일 날짜 | 달력 계산기 |
+| `lib/fortune.ts` | 눈 × 요일 × 승패로 오늘의 문장 | 운세 문장 상자 |
+| `lib/milestones.ts` | 출석 이정표, 희귀 사건, 내일 예고 | 칭호·스티커 규칙 |
+| `features/dice/components/AttendanceBar.tsx` | 홈 위쪽 연속 출석 막대 | “며칠째 왔는지” |
+| `features/dice/components/MidnightCountdown.tsx` | 내일 0시까지 시계 | 다음 주사위 대기 |
+| `features/dice/components/WeekBoard.tsx` | 일~토 7칸 | 이번 주 도장판 |
+| `features/dice/components/LuckCalendar.tsx` | 최근 30칸 | 작은 달력 |
+| `features/dice/components/BadgeShelf.tsx` | 1·3·7·14·30·100일 스티커 | 수집함 |
+| `features/dice/components/DiceDex.tsx` | 1~6을 한 번이라도 봤는지 | 눈 도감 |
+
+검사 명령: `npm run test:retention`
 
 ---
 
@@ -417,7 +435,7 @@ supabase/functions/
 
 ## 11. Toss In-App 배포 구성
 
-> 최종 수정: 2026-04-06 (v1.5 — Supabase 직접 접근으로 전환)
+> 최종 수정: 2026-08-23 (v2.3 — 출석·운세 화면 + AIT 산출물 갱신)
 
 ### 11-0. AIT WebView API URL 동작 원리
 
@@ -501,7 +519,7 @@ Ok to proceed? (y)
 
 | 항목 | 값 |
 |------|----|
-| deploymentId (최신 빌드) | `019d9f21-76ee-7473-9898-eb0ae6e9254c` |
+| deploymentId (최신 빌드) | `01a02beb-0eb9-7a15-92a8-296aafc7f9cd` |
 | adUnitId (고정) | `ait.v2.live.544f01132f2a43ec` |
 
 > `deploymentId`는 `npm run build:ait` 실행마다 Granite CLI가 새 UUIDv7을 자동 생성합니다.  

@@ -36,12 +36,18 @@ export default function ResultPage() {
       </div>
 
       <Card className="flex flex-col gap-6">
-        <ResultDisplay battle={result.battle} />
+        <ResultDisplay battle={result.battle} streak={result.streak} />
 
         {result.streak && (
           <div className="flex justify-center">
             <StreakBadge streak={result.streak} />
           </div>
+        )}
+
+        {result.streak && result.streak.total_plays <= 1 && (
+          <p className="text-xs text-center text-indigo-500">
+            이 기록은 내일부터 이어져요. 끊기지 않게만 오면 됩니다.
+          </p>
         )}
 
         {result.streak && result.streak.max_win_streak > 1 && (
@@ -51,7 +57,11 @@ export default function ResultPage() {
         )}
       </Card>
 
-      <RematchButton hasRematch={result.battle.has_rematch} />
+      <RematchButton
+        hasRematch={result.battle.has_rematch}
+        result={result.battle.result}
+        loseStreak={result.streak?.current_lose_streak ?? 0}
+      />
 
       <div className="mt-auto">
         <Link href="/">

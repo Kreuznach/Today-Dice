@@ -8,7 +8,7 @@
  */
 
 import { createClient as createSupabaseClient, SupabaseClient } from '@supabase/supabase-js'
-import { getTodayKST } from './date-utils'
+import { addDaysToDateStr, getTodayKST, weekdayOfDateStr } from './date-utils'
 import { generateNickname } from './nickname'
 import { rollDice, judgeResult, updateStreakState } from './game-logic'
 import type { Database } from '@/types/database'
@@ -76,10 +76,12 @@ export async function getTodayStatus(tossUserId: string): Promise<TodayStatusRes
     .maybeSingle()
 
   if (!user) {
-    return { played: false, battle: null, streak: null }
+    return { played: false, battle: null, streak: null, recentBattles: [] }
   }
 
-  const [battleRes, streakRes] = await Promise.all([
+  const weekStart = addDaysToDateStr(today, -weekdayOfDateStr(today))
+
+  const [battleRes, streakRes, weekRes] = await Promise.all([
     db
       .from('dice_daily_battle')
       .select('*')
@@ -91,12 +93,20 @@ export async function getTodayStatus(tossUserId: string): Promise<TodayStatusRes
       .select('*')
       .eq('user_id', user.id)
       .maybeSingle(),
+    db
+      .from('dice_daily_battle')
+      .select('*')
+      .eq('user_id', user.id)
+      .gte('battle_date', weekStart)
+      .lte('battle_date', today)
+      .order('battle_date', { ascending: true }),
   ])
 
   return {
     played: !!battleRes.data,
     battle: battleRes.data ?? null,
     streak: streakRes.data ?? null,
+    recentBattles: weekRes.data ?? [],
   }
 }
 
@@ -345,9 +355,7 @@ export async function getMyRecords(tossUserId: string): Promise<MyRecordsRespons
     return { display_name: null, battles: [], streak: null }
   }
 
-  const sevenDaysAgo = new Date()
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6)
-  const fromDate = sevenDaysAgo.toISOString().slice(0, 10)
+  const fromDate = addDaysToDateStr(today, -29)
 
   const [battlesRes, streakRes] = await Promise.all([
     db

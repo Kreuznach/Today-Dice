@@ -4,12 +4,18 @@ import Link from 'next/link'
 import { useTodayStatus } from '@/features/dice/hooks/useTodayStatus'
 import StreakBadge from '@/features/dice/components/StreakBadge'
 import ResultDisplay from '@/features/dice/components/ResultDisplay'
+import AttendanceBar from '@/features/dice/components/AttendanceBar'
+import MidnightCountdown from '@/features/dice/components/MidnightCountdown'
+import WeekBoard from '@/features/dice/components/WeekBoard'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import { getTodayKST } from '@/lib/date-utils'
+import { getTomorrowHint, isAttendanceMilestone } from '@/lib/milestones'
 
 export default function HomePage() {
   const { data, loading, error } = useTodayStatus()
+  const today = getTodayKST()
 
   return (
     <main className="flex flex-col flex-1 px-5 pt-10 pb-8 gap-6">
@@ -32,6 +38,8 @@ export default function HomePage() {
 
       {!loading && !error && data && (
         <>
+          <AttendanceBar streak={data.streak} playedToday={data.played} />
+
           {data.streak && (
             <div>
               <StreakBadge streak={data.streak} />
@@ -44,6 +52,9 @@ export default function HomePage() {
               <p className="text-lg font-semibold text-gray-800 text-center">
                 오늘의 주사위,<br />아직 안 굴렸어요
               </p>
+              <p className="text-sm text-gray-500 text-center">
+                {getTomorrowHint(false, data.streak)}
+              </p>
               <Link href="/play" className="w-full">
                 <Button fullWidth>오늘 주사위 굴리기</Button>
               </Link>
@@ -53,7 +64,11 @@ export default function HomePage() {
           {data.played && data.battle && !data.battle.has_rematch && (
             <Card className="flex flex-col gap-5">
               <p className="text-sm text-gray-500 text-center font-medium">오늘 결과</p>
-              <ResultDisplay battle={data.battle} />
+              <ResultDisplay battle={data.battle} streak={data.streak} compact />
+              <MidnightCountdown />
+              <p className="text-xs text-center text-gray-400">
+                {getTomorrowHint(true, data.streak)}
+              </p>
               <Link href={`/result?battleId=${data.battle.id}`} className="w-full">
                 <Button variant="secondary" fullWidth>결과 자세히 보기</Button>
               </Link>
@@ -63,10 +78,25 @@ export default function HomePage() {
           {data.played && data.battle && data.battle.has_rematch && (
             <Card className="flex flex-col gap-5">
               <p className="text-sm text-gray-500 text-center font-medium">오늘 최종 결과</p>
-              <ResultDisplay battle={data.battle} isFinal />
-              <p className="text-xs text-center text-gray-400">오늘의 기록이 확정됐어요 · 내일 다시 만나요</p>
+              <ResultDisplay battle={data.battle} isFinal streak={data.streak} compact />
+              <MidnightCountdown />
+              <p className="text-xs text-center text-gray-400">
+                {getTomorrowHint(true, data.streak)}
+              </p>
             </Card>
           )}
+
+          <Card padding="p-4">
+            <WeekBoard battles={data.recentBattles ?? []} today={today} />
+          </Card>
+
+          {data.played &&
+            data.streak &&
+            isAttendanceMilestone(data.streak.current_attendance_streak ?? 0) && (
+              <p className="text-center text-xs font-medium text-amber-700">
+                오늘 {data.streak.current_attendance_streak}일 이정표에 닿았어요
+              </p>
+            )}
 
           {data.streak && (
             <Card padding="p-4">

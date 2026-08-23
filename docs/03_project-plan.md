@@ -1,8 +1,9 @@
 # 오늘의 주사위 — 프로젝트 플랜
 
 > 작성일: 2026-04-03  
-> 버전: v0.1 (MVP 초안)  
-> 기준: Next.js 14 (App Router) + Supabase + Toss in App WebView  
+> 마지막 수정: 2026-08-23 (출석·운세 화면 파일 목록 추가)  
+> 버전: v0.2  
+> 기준: Next.js App Router + Supabase + Toss in App WebView  
 
 ---
 
@@ -16,6 +17,7 @@ Today-Dice/
 │   ├── 01_prd.md
 │   ├── 02_technical-design.md
 │   ├── 03_project-plan.md
+│   ├── 04_improvement-ideas.md     ← 흥미·리텐션 아이디어 (쉬운 말)
 │   └── implementation-request.md
 │
 ├── src/
@@ -62,17 +64,25 @@ Today-Dice/
 │   │       │   ├── usePlay.ts          ← 플레이 요청 훅
 │   │       │   └── useRematch.ts       ← 재대결 요청 훅
 │   │       ├── components/
-│   │       │   ├── ResultDisplay.tsx   ← 결과 표시 컴포넌트
+│   │       │   ├── ResultDisplay.tsx   ← 결과 + 오늘의 키워드
 │   │       │   ├── StreakBadge.tsx      ← 연승 뱃지
-│   │       │   └── RematchButton.tsx   ← 재대결 버튼 (조건부)
+│   │       │   ├── RematchButton.tsx   ← 재대결 버튼 (조건부)
+│   │       │   ├── AttendanceBar.tsx   ← 연속 출석 막대
+│   │       │   ├── MidnightCountdown.tsx ← 내일 0시 시계
+│   │       │   ├── WeekBoard.tsx       ← 일~토 출석 칸
+│   │       │   ├── LuckCalendar.tsx    ← 30일 달력
+│   │       │   ├── BadgeShelf.tsx      ← 출석 이정표
+│   │       │   └── DiceDex.tsx         ← 눈 도감
 │   │       └── types.ts                ← 도메인 타입 정의
 │   │
 │   ├── lib/
 │   │   ├── supabase/
 │   │   │   ├── client.ts           ← Supabase 클라이언트 (브라우저)
 │   │   │   └── server.ts           ← Supabase 클라이언트 (서버)
-│   │   ├── game-logic.ts           ← 주사위 판정/스트릭 로직 (서버용)
-│   │   ├── date-utils.ts           ← KST 날짜 처리 유틸
+│   │   ├── game-logic.ts           ← 주사위 판정/스트릭 로직
+│   │   ├── date-utils.ts           ← 한국 시간 날짜, 자정 카운트다운
+│   │   ├── fortune.ts              ← 오늘의 키워드·한 줄 운세
+│   │   ├── milestones.ts           ← 출석 이정표·희귀 사건
 │   │   ├── auth.ts                 ← Toss 사용자 인증 처리
 │   │   ├── ads.ts                  ← AIT 리워드 광고 유틸 (watchAd)
 │   │   └── nickname.ts             ← 랜덤 닉네임 생성 (형용사+명사+#4자리)

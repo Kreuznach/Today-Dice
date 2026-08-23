@@ -65,6 +65,7 @@ export interface TodayStatusResponse {
   played: boolean
   battle: TodayBattle | null
   streak: StreakState | null
+  recentBattles: TodayBattle[]
 }
 
 export interface PlayResponse {

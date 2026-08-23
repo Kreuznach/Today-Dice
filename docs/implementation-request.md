@@ -365,6 +365,7 @@ MVP: 광고 SDK 연동 전까지 임시 버튼으로 처리 가능
 | [01_prd.md](./01_prd.md) | 서비스 정의, 적합성 분석, MVP 범위, 게임 규칙, 화면 IA, 랭킹, 광고 UX |
 | [02_technical-design.md](./02_technical-design.md) | Supabase 테이블 설계, 서버 판정, API 흐름 |
 | [03_project-plan.md](./03_project-plan.md) | 폴더 구조, 개발 순서, 최종 추천안 |
+| [04_improvement-ideas.md](./04_improvement-ideas.md) | 흥미·리텐션 아이디어와 **v1.6에서 실제로 넣은 것** |
 
 ---
 

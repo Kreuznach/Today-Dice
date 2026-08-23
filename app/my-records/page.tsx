@@ -5,7 +5,13 @@ import Link from 'next/link'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import BadgeShelf from '@/features/dice/components/BadgeShelf'
+import DiceDex from '@/features/dice/components/DiceDex'
+import LuckCalendar from '@/features/dice/components/LuckCalendar'
+import WeekBoard from '@/features/dice/components/WeekBoard'
 import { getOrCreateGuestId } from '@/lib/auth'
+import { getTodayKST } from '@/lib/date-utils'
+import { getHonorific } from '@/lib/milestones'
 import { getMyRecords } from '@/lib/supabase'
 import type { MyRecordsResponse, TodayBattle } from '@/types'
 
@@ -83,6 +89,11 @@ export default function MyRecordsPage() {
   }, [])
 
   const streak = data?.streak ?? null
+  const today = getTodayKST()
+  const honorific = streak
+    ? getHonorific(streak.max_attendance_streak ?? 0, streak.total_plays)
+    : null
+  const recentSeven = (data?.battles ?? []).slice(0, 7)
 
   const rollCounts = streak
     ? [
@@ -96,13 +107,15 @@ export default function MyRecordsPage() {
     : []
   const maxRollCount = rollCounts.length > 0 ? Math.max(...rollCounts.map((r) => r.count), 1) : 1
 
+  const titleName = data?.display_name
+    ? `${honorific ? `${honorific} ` : ''}${data.display_name}님의 정보`
+    : '내 정보'
+
   return (
     <main className="flex flex-col flex-1 px-5 pt-8 pb-8 gap-6">
       {/* 헤더: 사용자 이름 */}
       <div className="flex flex-col gap-0.5">
-        <h1 className="text-xl font-bold text-gray-900">
-          {data?.display_name ? `${data.display_name}님의 정보` : '내 정보'}
-        </h1>
+        <h1 className="text-xl font-bold text-gray-900">{titleName}</h1>
         <p className="text-sm text-gray-500">누적 통계 및 연속 기록</p>
       </div>
 
@@ -201,14 +214,38 @@ export default function MyRecordsPage() {
             </Card>
           )}
 
+          <Card className="flex flex-col gap-5">
+            <WeekBoard battles={data.battles} today={today} />
+            <LuckCalendar battles={data.battles} today={today} />
+          </Card>
+
+          {streak && (
+            <Card className="flex flex-col gap-5">
+              <BadgeShelf
+                maxAttendance={streak.max_attendance_streak ?? 0}
+                totalPlays={streak.total_plays}
+              />
+              <DiceDex
+                counts={[
+                  streak.roll_count_1 ?? 0,
+                  streak.roll_count_2 ?? 0,
+                  streak.roll_count_3 ?? 0,
+                  streak.roll_count_4 ?? 0,
+                  streak.roll_count_5 ?? 0,
+                  streak.roll_count_6 ?? 0,
+                ]}
+              />
+            </Card>
+          )}
+
           {/* 최근 7일 기록 */}
           <div className="flex flex-col gap-2">
             <p className="text-sm font-semibold text-gray-700 px-1">최근 7일 기록</p>
             <Card padding="p-0" className="overflow-hidden">
-              {data.battles.length === 0 && (
+              {recentSeven.length === 0 && (
                 <p className="text-sm text-gray-400 text-center py-8">아직 플레이 기록이 없어요</p>
               )}
-              {data.battles.map((battle) => (
+              {recentSeven.map((battle) => (
                 <BattleRow key={battle.id} battle={battle} />
               ))}
             </Card>

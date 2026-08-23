@@ -64,7 +64,7 @@ export default function PlayPage() {
       <div className="flex flex-col items-center gap-2">
         <h1 className="text-xl font-bold text-gray-900">오늘의 주사위</h1>
         <p className="text-sm text-gray-500">
-          {isRolling ? '운명을 결정하는 중...' : '버튼을 탭하면 주사위를 굴립니다'}
+          {isRolling ? '주사위가 구르는 중...' : '버튼을 탭하면 주사위를 굴립니다'}
         </p>
       </div>
 

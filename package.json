@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "build:ait": "ait build && node scripts/post-ait-build.mjs",
-    "ait": "node --no-deprecation scripts/run-granite.mjs"
+    "ait": "node --no-deprecation scripts/run-granite.mjs",
+    "test:retention": "npx --yes tsx scripts/verify-retention.ts"
   },
   "dependencies": {
     "@apps-in-toss/web-framework": "^2.4.1",

@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import ResultDisplay from '@/features/dice/components/ResultDisplay'
 import StreakBadge from '@/features/dice/components/StreakBadge'
+import MidnightCountdown from '@/features/dice/components/MidnightCountdown'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
+import { getTomorrowHint } from '@/lib/milestones'
 import type { RematchResponse } from '@/types'
 
 export default function FinalResultPage() {
@@ -36,7 +38,8 @@ export default function FinalResultPage() {
       </div>
 
       <Card className="flex flex-col gap-6">
-        <ResultDisplay battle={result.battle} isFinal />
+        <p className="text-center text-xs font-semibold text-indigo-500">오늘의 증표</p>
+        <ResultDisplay battle={result.battle} isFinal streak={result.streak} />
 
         {result.streak && (
           <div className="flex justify-center">
@@ -46,10 +49,14 @@ export default function FinalResultPage() {
       </Card>
 
       <Card padding="p-4" className="bg-blue-50 border-blue-100">
-        <p className="text-sm text-blue-700 text-center leading-relaxed">
-          내일 다시 만나요 👋<br />
-          <span className="text-xs text-blue-500">매일 1번 주사위를 굴릴 수 있어요</span>
-        </p>
+        <div className="flex flex-col gap-2">
+          <MidnightCountdown />
+          <p className="text-sm text-blue-700 text-center leading-relaxed">
+            {getTomorrowHint(true, result.streak)}
+            <br />
+            <span className="text-xs text-blue-500">매일 1번 주사위를 굴릴 수 있어요</span>
+          </p>
+        </div>
       </Card>
 
       {result.streak && (
