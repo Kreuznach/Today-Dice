@@ -1,12 +1,28 @@
 # 오늘의 주사위 — 기술 설계서
 
 > 작성일: 2026-04-03  
-> 최종 수정: 2026-08-23 (v2.5 — 앱인토스 플로팅 탭바 재검증 및 AIT 재빌드)  
+> 최종 수정: 2026-09-10 (v2.6 — 앱인토스 SDK v3.4.0 업그레이드 및 AIT 재빌드)  
 > 버전: v2.3  
 > 데이터베이스: Supabase  
 > 테이블 명명 규칙: 반드시 `dice_` 접두사 사용  
 
 ---
+
+### v2.6 변경 메모 (2026-09-10)
+
+- 토스가 권장하는 앱인토스 SDK 최소 버전(3.1 이상)에 맞춰 `@apps-in-toss/web-framework`를
+  `2.4.1` → `3.4.0`으로 올렸습니다.
+- 토스 공식 명령어 `ait migrate v3`로 설정 파일을 `granite.config.ts` → `apps-in-toss.config.ts`로
+  자동 변환했습니다. (브랜드 아이콘/표시 이름 설정은 v3부터 콘솔에서 관리하는 방식으로 바뀌었습니다.)
+- 자동 변환 스크립트가 `package.json`의 `build` 스크립트를 AIT 전용 명령으로 덮어써서
+  일반 배포(Vercel 등)용 빌드가 깨지는 문제가 있어, `build`는 원래대로 `next build`로 되돌리고
+  AIT 전용 빌드는 `build:ait` 스크립트 하나로 분리해 두었습니다.
+- `lib/ads.ts`의 `GoogleAdMob` 광고 API는 SDK v3에서도 그대로 쓸 수 있는 호환 별칭이라 코드 수정 없이 동작합니다.
+- 개발용 도구 `@apps-in-toss/devtools`를 devDependencies에 추가했습니다 (브라우저에서 미니앱을 모의 테스트할 때 사용, 프로덕션 빌드에는 포함되지 않음).
+- 새 `today-dice.ait` 파일을 다시 빌드했고, `deploymentId`가 새로 생성되어 `app.json` / `public/app.json`에 반영되었습니다.
+- ⚠️ **다음 배포 전 필수 확인:** 토스 문서에 따르면 SDK v3부터 CORS 허용 목록에
+  `https://today-dice.web.tossmini.com`, `https://today-dice.private-web.tossmini.com`
+  두 주소를 등록해야 할 수 있습니다. Supabase Edge Functions의 CORS 설정을 배포 전에 점검하세요.
 
 ### v2.5 변경 메모 (2026-08-23)
 
@@ -450,11 +466,11 @@ supabase/functions/
 
 ## 11. Toss In-App 배포 구성
 
-> 최종 수정: 2026-08-23 (v2.3 — 출석·운세 화면 + AIT 산출물 갱신)
+> 최종 수정: 2026-09-10 (v2.6 — SDK v3.4.0 업그레이드, 설정 파일 `apps-in-toss.config.ts`로 전환)
 
 ### 11-0. AIT WebView API URL 동작 원리
 
-AIT 번들의 WebView URL은 `granite.config.ts`의 `host/port` 와 **무관**합니다.  
+AIT 번들의 WebView URL은 `apps-in-toss.config.ts`와 **무관**합니다 (SDK v3부터 `host`/`port` 설정 필드 자체가 없어졌습니다).  
 프로덕션(Toss 앱 내)에서 WebView의 base URL은 Toss 네이티브가 `getWebBundleURL`로 결정합니다.  
 번들의 JS가 `/api/*` 등 상대 경로로 fetch하면 **Toss 인프라 URL로 요청** → HTML 반환 → JSON parse 오류.
 
@@ -469,7 +485,7 @@ AIT 번들의 WebView URL은 `granite.config.ts`의 `host/port` 와 **무관**�
 |------|------|
 | `public/app.json` | **Granite 스키마 (schemaVersion 1)** — `ait build` 후 `scripts/post-ait-build.mjs`가 deploymentId를 자동 갱신 |
 | `app.json` (루트) | 레거시 AIT v2 스키마 호환용 — `ait.adUnitId`, `ait.deploymentId` 포함 |
-| `granite.config.ts` | `@apps-in-toss/web-framework` 설정 — `appName`, 브랜드 정보, `outdir: 'out'` |
+| `apps-in-toss.config.ts` | `@apps-in-toss/web-framework` v3 설정 — `appName`, 브랜드 정보, `webBundleDir: 'out'` (구 `granite.config.ts`) |
 | `next.config.ts` | AIT 빌드 시에만 `output: 'export'` (`AIT_DEPLOYMENT_ID` 또는 `NEXT_BUILD_FOR_AIT` 존재 시) |
 | `lib/supabase.ts` | Supabase 직접 접근 데이터 레이어 — 모든 DB 조작 함수 포함 |
 | `lib/ads.ts` | GoogleAdMob 리워드 광고 유틸리티 — 2단계 load→show 처리, `dismissed` 이벤트로 최종 결과 확정 |
@@ -480,16 +496,20 @@ AIT 번들의 WebView URL은 `granite.config.ts`의 `host/port` 와 **무관**�
 
 ### 11-2. deploymentId 생성 방식
 
-- **생성:** `ait build` 실행 때마다 Granite CLI가 새 UUIDv7을 **자동 생성**
+- **생성:** `ait build` 실행 때마다 CLI(`@apps-in-toss/cli`, v3.4.0)가 새 UUIDv7을 **자동 생성**
 - **동기화:** `scripts/post-ait-build.mjs`(AIT 바이너리 직접 파싱)가 빌드 후 `public/app.json` 및 `app.json`을 자동 갱신
 - **등록:** 출력된 deploymentId를 Toss 파트너 포털에 등록
 
 ### 11-3. AIT 빌드 파이프라인
 
+> SDK v3부터 `ait build`는 `next build`처럼 프레임워크 빌드를 직접 실행해 주지 않습니다.
+> 그래서 `build:ait` 스크립트가 next build(정적 export) → ait build(패키징) → deploymentId 동기화, 3단계를 순서대로 실행합니다.
+
 #### 일반 빌드
 
 ```bash
-npm run build:ait   # ait build && node scripts/post-ait-build.mjs
+npm run build:ait
+# 내부 동작: node scripts/build-for-ait.mjs && ait build && node scripts/post-ait-build.mjs
 ```
 
 #### 클린 빌드 (캐시 문제 발생 시 필수)
@@ -519,25 +539,22 @@ Ok to proceed? (y)
 > **DEP0190 DeprecationWarning** 경고도 함께 출력될 수 있으나, `ait build` 내부의 알려진 경고이며 빌드 결과에 영향을 주지 않습니다.
 
 #### 실행 순서
-1. `ait build` CLI — RN 0.84.0 빌드 → RN 0.72.6 빌드 → `.ait` 아티팩트 패키징
-2. `node scripts/post-ait-build.mjs` — AIT 바이너리에서 deploymentId 추출 → `public/app.json` + `app.json` 갱신
+1. `node scripts/build-for-ait.mjs` — `next build`를 정적 export(`out/`) 모드로 실행
+2. `ait build` CLI — `apps-in-toss.config.ts`의 `webBundleDir`(`out/`)를 읽어 `.ait` 아티팩트로 패키징
+3. `node scripts/post-ait-build.mjs` — AIT 바이너리에서 deploymentId 추출 → `public/app.json` + `app.json` 갱신
 
 ```
-◇  [1/2] Built for RN 0.84.0
-◇  [2/2] Built for RN 0.72.6
-◇  Creating .ait artifact...
-◆  AIT build completed (today-dice.ait)
-●  deploymentId: <생성된-UUIDv7>
+새 UUIDv7 deploymentId와 함께 "AIT 빌드가 완료되었습니다 (today-dice.ait)" 메시지가 출력되면 성공입니다.
 ```
 
 #### 현재 deploymentId
 
 | 항목 | 값 |
 |------|----|
-| deploymentId (최신 빌드) | `01a02beb-0eb9-7a15-92a8-296aafc7f9cd` |
+| deploymentId (최신 빌드, 2026-09-10) | `01a08a25-da99-7561-88d1-4c835b83ebfe` |
 | adUnitId (고정) | `ait.v2.live.544f01132f2a43ec` |
 
-> `deploymentId`는 `npm run build:ait` 실행마다 Granite CLI가 새 UUIDv7을 자동 생성합니다.  
+> `deploymentId`는 `npm run build:ait` 실행마다 CLI가 새 UUIDv7을 자동 생성합니다.
 > 빌드 후 Toss 파트너 포털에 출력된 최신 `deploymentId`를 등록해야 합니다.
 
 ### 11-4. 환경변수
@@ -588,7 +605,7 @@ NEXT_PUBLIC_AIT_AD_ID=ait.v2.live.544f01132f2a43ec
                   └─ 실패 시 에러 메시지                                    └─ sessionStorage에 저장
 ```
 
-**사용 패키지:** `@apps-in-toss/web-framework` (내부적으로 `@apps-in-toss/web-bridge` re-export)
+**사용 패키지:** `@apps-in-toss/web-framework` v3.4.0 (`GoogleAdMob`은 v2 호환 별칭으로 계속 제공됨, 내부적으로 `@webview-bridge/web` 사용)
 
 **핵심 이벤트 타입:**
 

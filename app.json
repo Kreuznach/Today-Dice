@@ -5,10 +5,10 @@
   "description": "주사위로 1일 1회 AI 주사위 대결",
   "category": "entertainment",
   "entryUrl": "/",
-  "sdkVersion": "2.0",
-  "deploymentId": "01a02ca5-12e9-7620-b333-71c7d48a36be",
+  "sdkVersion": "3.0",
+  "deploymentId": "01a08a25-da99-7561-88d1-4c835b83ebfe",
   "ait": {
-    "deploymentId": "01a02ca5-12e9-7620-b333-71c7d48a36be",
+    "deploymentId": "01a08a25-da99-7561-88d1-4c835b83ebfe",
     "adUnitId": "ait.v2.live.544f01132f2a43ec",
     "adType": "rewarded"
   },

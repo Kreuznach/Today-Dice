@@ -133,18 +133,18 @@ NEXT_PUBLIC_API_BASE_URL=https://<project-ref>.supabase.co/functions/v1
 
 | 항목 | 상태 | 비고 |
 |------|------|------|
-| AIT SDK 버전 | ✅ v2 | 광고 ID `ait.v2.live.*` 접두사로 확인 |
-| Deployment ID | ✅ 자동 생성 | `ait build` 시 Granite CLI가 UUIDv7 자동 생성 |
+| AIT SDK 버전 | ✅ `@apps-in-toss/web-framework` v3.4.0 | 토스가 권장하는 3.1 이상 (2026-09-10 업그레이드, 광고 ID는 기존 `ait.v2.live.*` 그대로 사용) |
+| Deployment ID | ✅ 자동 생성 | `ait build` 시 CLI가 UUIDv7 자동 생성 |
 | `public/app.json` | ✅ 작성됨 | Granite 스키마 (schemaVersion 1) — 빌드 후 자동 갱신 |
 | `app.json` | ✅ 작성됨 | 레거시 AIT v2 스키마 호환용 |
-| `granite.config.ts` | ✅ 작성됨 | `@apps-in-toss/web-framework` 빌드 설정 |
+| `apps-in-toss.config.ts` | ✅ 작성됨 | `@apps-in-toss/web-framework` v3 빌드 설정 (구 `granite.config.ts`에서 `ait migrate v3`로 자동 전환됨) |
 | `NEXT_PUBLIC_APP_ENV` | ✅ `production` | `.env.local.example` 참조 |
 | `NEXT_PUBLIC_API_BASE_URL` | ⚠️ **AIT 빌드 필수** | Supabase Edge Functions URL. 로컬 개발 시 비워두기 |
 
 ### AIT 빌드 생성
 
 ```bash
-# Granite CLI가 next build → RN 0.84/0.72 빌드 → AIT 바이너리 패키징 수행
+# 1) next build를 정적 내보내기(out/)로 실행 → 2) ait build로 .ait 패키징 → 3) deploymentId 동기화
 npm run build:ait
 ```
 
@@ -161,17 +161,10 @@ rm -rf .next out && npm run build:ait
 
 > **프롬프트:** 빌드 중 `Need to install the following packages: node@xx.xx.x` 메시지가 나타나면 `y`를 입력하세요.
 
-빌드 완료 후 터미널에 아래와 같은 출력이 표시되어야 합니다:
-```
-◇  [1/2] Built for RN 0.84.0
-◇  [2/2] Built for RN 0.72.6
-◇  Creating .ait artifact...
-◆  AIT build completed (today-dice.ait)
-●  deploymentId: <생성된-UUIDv7>
-```
+빌드 완료 후 터미널에 "AIT 빌드가 완료되었습니다 (today-dice.ait)"와 함께 새로 생성된 `deploymentId`가 출력되면 성공입니다.
 
 생성 파일: `today-dice.ait` (AITBUNDL 바이너리 형식)  
-포함 내용: RN 0.84/0.72 프리빌드 번들 + Next.js 정적 내보내기(`out/`) + `public/app.json`
+포함 내용: Next.js 정적 내보내기(`out/`, `webBundleDir`) + `public/app.json`
 
 > `today-dice.ait` 파일은 `.gitignore`에 포함되어 있어 커밋되지 않습니다.  
 > 빌드할 때마다 새 deploymentId가 생성되면 `scripts/post-ait-build.mjs`가 `public/app.json`을 자동으로 최신화합니다.  
@@ -179,5 +172,10 @@ rm -rf .next out && npm run build:ait
 
 | 항목 | 값 |
 |------|----|
-| 최신 deploymentId | `01a02beb-0eb9-7a15-92a8-296aafc7f9cd` |
+| 최신 deploymentId | `01a08a25-da99-7561-88d1-4c835b83ebfe` |
 | adUnitId (고정) | `ait.v2.live.544f01132f2a43ec` |
+
+> **SDK 3.x로 넘어가면서 바뀐 점 (2026-09-10):**
+> - 설정 파일 이름이 `granite.config.ts` → `apps-in-toss.config.ts` 로 바뀌었어요. (토스 공식 `ait migrate v3` 명령으로 자동 변환)
+> - 브라우저에서 미니앱을 테스트할 수 있는 `@apps-in-toss/devtools` 가 개발용 도구로 추가됐어요. (Turbopack 환경이라 자동 연결은 생략, 필요하면 [devtools 문서](https://developers-apps-in-toss.toss.im/) 참고)
+> - 토스 문서에 따르면 CORS 허용 목록에 `https://today-dice.web.tossmini.com`, `https://today-dice.private-web.tossmini.com` 두 주소를 등록해야 할 수 있어요 — Supabase Edge Functions 배포 시 확인하세요.
