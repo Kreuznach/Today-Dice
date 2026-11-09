@@ -8,6 +8,7 @@ import StreakBadge from '@/features/dice/components/StreakBadge'
 import RematchButton from '@/features/dice/components/RematchButton'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
+import { loadTodayResult } from '@/lib/today-result'
 import type { PlayResponse } from '@/types'
 
 export default function ResultPage() {
@@ -15,15 +16,14 @@ export default function ResultPage() {
   const [result, setResult] = useState<PlayResponse | null>(null)
 
   useEffect(() => {
-    const raw = sessionStorage.getItem('play_result')
-    if (!raw) {
-      router.replace('/')
-      return
-    }
-    try {
-      setResult(JSON.parse(raw))
-    } catch {
-      router.replace('/')
+    let cancelled = false
+    loadTodayResult().then((saved) => {
+      if (cancelled) return
+      if (saved) setResult(saved)
+      else router.replace('/')
+    })
+    return () => {
+      cancelled = true
     }
   }, [router])
 

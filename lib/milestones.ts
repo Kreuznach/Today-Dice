@@ -146,7 +146,7 @@ export function getTomorrowHint(
 
   if (playedToday) {
     if (winStreak > 0) {
-      return `내일이면 연승 ${winStreak}이 이어집니다.`
+      return `내일 이기면 연승 ${winStreak + 1}이 돼요.`
     }
     if (attendance > 0) {
       return `내일이면 ${attendance + 1}일 연속이 됩니다.`

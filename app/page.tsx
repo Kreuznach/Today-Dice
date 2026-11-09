@@ -6,6 +6,7 @@ import StreakBadge from '@/features/dice/components/StreakBadge'
 import ResultDisplay from '@/features/dice/components/ResultDisplay'
 import AttendanceBar from '@/features/dice/components/AttendanceBar'
 import MidnightCountdown from '@/features/dice/components/MidnightCountdown'
+import RematchButton from '@/features/dice/components/RematchButton'
 import WeekBoard from '@/features/dice/components/WeekBoard'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
@@ -69,6 +70,11 @@ export default function HomePage() {
               <p className="text-xs text-center text-gray-400">
                 {getTomorrowHint(true, data.streak)}
               </p>
+              <RematchButton
+                hasRematch={false}
+                result={data.battle.result}
+                loseStreak={data.streak?.current_lose_streak ?? 0}
+              />
               <Link href={`/result?battleId=${data.battle.id}`} className="w-full">
                 <Button variant="secondary" fullWidth>결과 자세히 보기</Button>
               </Link>

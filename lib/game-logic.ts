@@ -1,5 +1,39 @@
 import type { StreakState } from '@/types'
 
+export type BattleOutcome = 'win' | 'lose' | 'draw'
+type StreakTriple = Record<BattleOutcome, number>
+
+/** 지난 날들의 최종 결과(오래된 순)로 현재 연속 기록과 역대 최고 연속 기록을 계산 */
+export function streaksFromHistory(outcomes: BattleOutcome[]): {
+  current: StreakTriple
+  max: StreakTriple
+} {
+  const current: StreakTriple = { win: 0, lose: 0, draw: 0 }
+  const max: StreakTriple = { win: 0, lose: 0, draw: 0 }
+  let runType: BattleOutcome | null = null
+  let runLength = 0
+
+  for (const outcome of outcomes) {
+    runLength = outcome === runType ? runLength + 1 : 1
+    runType = outcome
+    if (runLength > max[outcome]) max[outcome] = runLength
+  }
+
+  if (runType) current[runType] = runLength
+  return { current, max }
+}
+
+/** 1차 결과가 올려 둔 최고 기록만 되돌린다. 원래 더 높았던 기록은 그대로 둔다. */
+export function rolledBackMax(
+  storedMax: number,
+  beforeCurrent: number,
+  beforeMax: number,
+  firstResultMatches: boolean,
+): number {
+  if (!firstResultMatches || storedMax > beforeCurrent + 1) return storedMax
+  return Math.max(beforeMax, beforeCurrent)
+}
+
 /**
  * 1~6 사이의 랜덤 정수 반환 (서버에서만 호출)
  */

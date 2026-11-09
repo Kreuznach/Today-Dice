@@ -24,10 +24,13 @@ function rematchHint(
     return '오늘은 여기서 끝낼 수도 있어요.'
   }
   if (result === 'lose') {
-    return '연승 기록은 오늘 결과로 갱신돼요.'
+    return '다시 굴리면 오늘 기록이 새 결과로 바뀌어요.'
   }
   if (result === 'draw') {
     return '무승부도 오늘의 기록이에요.'
+  }
+  if (result === 'win') {
+    return '지금 결과는 승리예요. 다시 굴리면 이 결과는 새 결과로 바뀌어요.'
   }
   return '짧은 동영상 시청 후 오늘 마지막으로 한 번 더 굴릴 수 있어요.'
 }

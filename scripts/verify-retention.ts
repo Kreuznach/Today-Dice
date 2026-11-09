@@ -13,6 +13,8 @@ import {
   getTodayKST,
 } from '../lib/date-utils'
 import { getTodayFortune, getFortuneScaleLabel } from '../lib/fortune'
+import { streaksFromHistory, rolledBackMax, updateStreakState } from '../lib/game-logic'
+import type { BattleOutcome } from '../lib/game-logic'
 import {
   getNextAttendanceMilestone,
   getUnlockedAttendanceBadges,
@@ -155,6 +157,25 @@ const hint = getTomorrowHint(
     last_play_date: '2026-08-23',
   }),
 )
-assert.match(hint ?? '', /연승 2/)
+assert.match(hint ?? '', /연승 3/)
+
+// 재대결 연승 복구: 5연승 뒤 1차 패배 → 재대결 승리 = 6연승
+const past: BattleOutcome[] = ['lose', 'win', 'win', 'win', 'win', 'win']
+const before = streaksFromHistory(past)
+assert.equal(before.current.win, 5)
+assert.equal(before.max.win, 5)
+assert.equal(before.current.lose, 0)
+const afterRematchWin = updateStreakState(
+  emptyStreak({ current_win_streak: before.current.win, max_win_streak: before.max.win }),
+  'win',
+)
+assert.equal(afterRematchWin.current_win_streak, 6)
+assert.equal(afterRematchWin.max_win_streak, 6)
+
+// 1차에서 올라간 최고 기록은 되돌리고, 원래 더 높던 기록은 그대로 둔다
+assert.equal(rolledBackMax(5, 4, 4, true), 4)
+assert.equal(rolledBackMax(9, 4, 9, true), 9)
+assert.equal(rolledBackMax(5, 4, 4, false), 5)
+assert.deepEqual(streaksFromHistory([]).current, { win: 0, lose: 0, draw: 0 })
 
 console.log('verify-retention: ok')

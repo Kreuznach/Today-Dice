@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Dice3D from '@/components/dice/Dice3D'
 import Button from '@/components/ui/Button'
 import { useRematch } from '@/features/dice/hooks/useRematch'
+import { loadTodayResult, saveTodayResult } from '@/lib/today-result'
 
 type Phase = 'idle' | 'rolling' | 'done'
 
@@ -22,12 +23,11 @@ export default function RematchPlayPage() {
   const [aiValue, setAiValue] = useState<1 | 2 | 3 | 4 | 5 | 6 | 'unknown'>('unknown')
   const [resultLabel, setResultLabel] = useState<{ text: string; color: string } | null>(null)
 
-  // 광고를 보지 않고 직접 URL 접근 방지 (이전 결과가 없으면 홈으로)
+  // 광고를 보지 않고 직접 URL 접근 방지 (오늘 결과가 없거나 이미 재대결했으면 홈으로)
   useEffect(() => {
-    const raw = sessionStorage.getItem('play_result')
-    if (!raw) {
-      router.replace('/')
-    }
+    loadTodayResult().then((saved) => {
+      if (!saved || saved.battle.has_rematch) router.replace('/')
+    })
   }, [router])
 
   const handleRoll = useCallback(async () => {
@@ -54,8 +54,9 @@ export default function RematchPlayPage() {
       setResultLabel(label)
       setPhase('done')
 
-      // sessionStorage 저장 후 최종 결과 화면으로 이동
+      // 결과 저장 후 최종 결과 화면으로 이동 (오늘 결과도 재대결 반영본으로 갱신)
       sessionStorage.setItem('rematch_result', JSON.stringify(result))
+      saveTodayResult(result)
       setTimeout(() => router.push('/result/final'), 2200)
     } else {
       setPhase('idle')

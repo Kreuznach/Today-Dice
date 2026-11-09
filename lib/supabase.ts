@@ -10,7 +10,8 @@
 import { createClient as createSupabaseClient, SupabaseClient } from '@supabase/supabase-js'
 import { addDaysToDateStr, getTodayKST, weekdayOfDateStr } from './date-utils'
 import { generateNickname } from './nickname'
-import { rollDice, judgeResult, updateStreakState } from './game-logic'
+import { rollDice, judgeResult, updateStreakState, streaksFromHistory, rolledBackMax } from './game-logic'
+import type { BattleOutcome } from './game-logic'
 import type { Database } from '@/types/database'
 import type {
   TodayStatusResponse,
@@ -220,22 +221,33 @@ export async function saveRematch(tossUserId: string): Promise<RematchResponse> 
     .eq('user_id', user.id)
     .maybeSingle()
 
+  // 오늘 이전 기록으로 "1차 굴림 전" 연승/연패/무승부를 다시 계산 (1차에서 0으로 지워진 연승 복구)
+  const { data: pastRows } = await db
+    .from('dice_daily_battle')
+    .select('final_result')
+    .eq('user_id', user.id)
+    .lt('battle_date', today)
+    .order('battle_date', { ascending: true })
+  const before = streaksFromHistory(
+    (pastRows ?? []).map((row) => row.final_result as BattleOutcome),
+  )
+
   // 1차 플레이 결과를 롤백한 기반 스트릭에서 재대결 결과 적용
   const base: StreakState = currentStreak
     ? {
         ...currentStreak,
-        current_win_streak:
-          battle.result === 'win'
-            ? Math.max(0, currentStreak.current_win_streak - 1)
-            : currentStreak.current_win_streak,
-        current_lose_streak:
-          battle.result === 'lose'
-            ? Math.max(0, currentStreak.current_lose_streak - 1)
-            : currentStreak.current_lose_streak,
-        current_draw_streak:
-          battle.result === 'draw'
-            ? Math.max(0, currentStreak.current_draw_streak - 1)
-            : currentStreak.current_draw_streak,
+        current_win_streak: before.current.win,
+        current_lose_streak: before.current.lose,
+        current_draw_streak: before.current.draw,
+        max_win_streak: rolledBackMax(
+          currentStreak.max_win_streak, before.current.win, before.max.win, battle.result === 'win',
+        ),
+        max_lose_streak: rolledBackMax(
+          currentStreak.max_lose_streak, before.current.lose, before.max.lose, battle.result === 'lose',
+        ),
+        max_draw_streak: rolledBackMax(
+          currentStreak.max_draw_streak, before.current.draw, before.max.draw, battle.result === 'draw',
+        ),
         total_wins:
           battle.result === 'win' ? Math.max(0, currentStreak.total_wins - 1) : currentStreak.total_wins,
         total_losses:
